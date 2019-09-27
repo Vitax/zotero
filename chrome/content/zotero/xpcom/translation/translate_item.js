@@ -1,25 +1,25 @@
 /*
     ***** BEGIN LICENSE BLOCK *****
-    
+
     Copyright © 2012 Center for History and New Media
                      George Mason University, Fairfax, Virginia, USA
                      http://zotero.org
-    
+
     This file is part of Zotero.
-    
+
     Zotero is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    
+
     Zotero is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
-    
+
     You should have received a copy of the GNU Affero General Public License
     along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     ***** END LICENSE BLOCK *****
 */
 
@@ -38,37 +38,38 @@
  *         <li>baseURI - URI to which attachment paths should be relative</li>
  *         <li>saveOptions - Options to pass to DataObject::save() (e.g., skipSelect)</li>
  */
-Zotero.Translate.ItemSaver = function(options) {
+Zotero.Translate.ItemSaver = function (options) {
 	// initialize constants
 	this._IDMap = {};
-	
+
 	// determine library ID
-	if(!options.libraryID) {
+	if (!options.libraryID) {
 		this._libraryID = Zotero.Libraries.userLibraryID;
 	} else {
 		this._libraryID = options.libraryID;
 	}
-	
+
 	this._collections = options.collections || false;
-	
+
 	// If group filesEditable==false, don't save attachments
 	this.attachmentMode = Zotero.Libraries.get(this._libraryID).filesEditable ? options.attachmentMode :
-	                      Zotero.Translate.ItemSaver.ATTACHMENT_MODE_IGNORE;
+		Zotero.Translate.ItemSaver.ATTACHMENT_MODE_IGNORE;
 	this._linkFiles = options.linkFiles;
 	this._forceTagType = options.forceTagType;
 	this._referrer = options.referrer;
 	this._cookieSandbox = options.cookieSandbox;
 	this._proxy = options.proxy;
-	
+
 	// the URI to which other URIs are assumed to be relative
-	if(typeof options.baseURI === "object" && options.baseURI instanceof Components.interfaces.nsIURI) {
+	if (typeof options.baseURI === "object" && options.baseURI instanceof Components.interfaces.nsIURI) {
 		this._baseURI = options.baseURI;
 	} else {
 		// try to convert to a URI
 		try {
-			this._baseURI = Components.classes["@mozilla.org/network/io-service;1"].
-				getService(Components.interfaces.nsIIOService).newURI(options.baseURI, null, null);
-		} catch(e) {};
+			this._baseURI = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService).newURI(options.baseURI, null, null);
+		} catch (e) {
+		}
+		;
 	}
 	this._saveOptions = options.saveOptions || {};
 };
@@ -92,16 +93,16 @@ Zotero.Translate.ItemSaver.prototype = {
 		var standaloneAttachments = [];
 		var childAttachments = [];
 		var jsonByItem = new Map();
-		
+
 		await Zotero.DB.executeTransaction(async function () {
 			for (let jsonItem of jsonItems) {
 				jsonItem = Object.assign({}, jsonItem);
-				
+
 				let item;
 				let itemID;
 				// Type defaults to "webpage"
 				let type = jsonItem.itemType || "webpage";
-				
+
 				// Handle notes differently
 				if (type == "note") {
 					item = await this._saveNote(jsonItem);
@@ -113,33 +114,35 @@ Zotero.Translate.ItemSaver.prototype = {
 						attachmentCallback(jsonItem, 0);
 					}
 					continue;
-				}
-				else {
+				} else {
 					item = new Zotero.Item(type);
 					item.libraryID = this._libraryID;
 					if (jsonItem.creators) this._cleanCreators(jsonItem.creators);
 					if (jsonItem.tags) jsonItem.tags = this._cleanTags(jsonItem.tags);
-					
+
 					if (jsonItem.accessDate == 'CURRENT_TIMESTAMP') {
 						jsonItem.accessDate = Zotero.Date.dateToISO(new Date());
 					}
-					
+
 					item.fromJSON(this._copyJSONItemForImport(jsonItem));
-					
+
+					dump('json item url: ' + jsonItem.url + "\n\n");
+
 					// deproxify url
 					if (this._proxy && jsonItem.url) {
 						let url = this._proxy.toProper(jsonItem.url);
+						dump('json item url: ' + url + "\n\n");
 						Zotero.debug(`Deproxifying item url ${jsonItem.url} with scheme ${this._proxy.scheme} to ${url}`, 5);
 						item.setField('url', url);
 					}
-					
+
 					if (this._collections) {
 						item.setCollections(this._collections);
 					}
-					
+
 					// save item
 					itemID = await item.save(this._saveOptions);
-					
+
 					// handle notes
 					if (jsonItem.notes) {
 						for (let note of jsonItem.notes) {
@@ -155,7 +158,7 @@ Zotero.Translate.ItemSaver.prototype = {
 							if (!this._canSaveAttachment(jsonAttachment)) {
 								continue;
 							}
-							
+
 							// The first PDF is the primary one. If that one fails to download,
 							// we might check for an open-access PDF below.
 							let isPrimaryPDF = false;
@@ -169,11 +172,11 @@ Zotero.Translate.ItemSaver.prototype = {
 						}
 						jsonItem.attachments = attachmentsToSave;
 					}
-					
+
 					// handle see also
 					this._handleRelated(jsonItem, item);
 				}
-				
+
 				// Add to new item list
 				items.push(item);
 				jsonByItem.set(item, jsonItem);
@@ -183,15 +186,16 @@ Zotero.Translate.ItemSaver.prototype = {
 		if (itemsDoneCallback) {
 			itemsDoneCallback(items.map(item => jsonByItem.get(item)), items);
 		}
-		
+
 		// Save standalone attachments
 		for (let jsonItem of standaloneAttachments) {
 			let item = await this._saveAttachment(jsonItem, null, attachmentCallback);
+
 			if (item) {
 				items.push(item);
 			}
 		}
-		
+
 		// For items with DOIs and without PDFs from the translator, look for possible
 		// open-access PDFs. There's no guarantee that either translated PDFs or OA PDFs will
 		// successfully download, but this lets us update the progress window sooner with
@@ -199,18 +203,18 @@ Zotero.Translate.ItemSaver.prototype = {
 		//
 		// TODO: Separate pref?
 		var shouldDownloadOAPDF = this.attachmentMode == Zotero.Translate.ItemSaver.ATTACHMENT_MODE_DOWNLOAD
-				&& Zotero.Prefs.get('downloadAssociatedFiles');
+			&& Zotero.Prefs.get('downloadAssociatedFiles');
 		var openAccessPDFURLs = new Map();
 		if (shouldDownloadOAPDF) {
 			for (let item of items) {
 				let jsonItem = jsonByItem.get(item);
-				
+
 				// Skip items with translated PDF attachments
 				if (jsonItem.attachments
-						&& jsonItem.attachments.some(x => x.mimeType == 'application/pdf')) {
+					&& jsonItem.attachments.some(x => x.mimeType == 'application/pdf')) {
 					continue;
 				}
-				
+
 				try {
 					let resolvers = Zotero.Attachments.getPDFResolvers(item, ['oa']);
 					if (!resolvers.length) {
@@ -227,13 +231,12 @@ Zotero.Translate.ItemSaver.prototype = {
 						jsonItem.attachments.push(jsonAttachment);
 						attachmentCallback(jsonAttachment, 0);
 					}
-				}
-				catch (e) {
+				} catch (e) {
 					Zotero.logError(e);
 				}
 			}
 		}
-		
+
 		// Save translated child attachments, and keep track of whether the save was successful
 		var itemIDsWithPDFAttachments = new Set();
 		for (let [jsonAttachment, parentItemID] of childAttachments) {
@@ -252,7 +255,7 @@ Zotero.Translate.ItemSaver.prototype = {
 				itemIDsWithPDFAttachments.add(parentItemID);
 			}
 		}
-		
+
 		// If a translated PDF attachment wasn't saved successfully, either because there wasn't
 		// one or there was but it failed, look for another PDF (if enabled)
 		if (shouldDownloadOAPDF) {
@@ -261,14 +264,14 @@ Zotero.Translate.ItemSaver.prototype = {
 				if (itemIDsWithPDFAttachments.has(item.id)) {
 					continue;
 				}
-				
+
 				let jsonItem = jsonByItem.get(item);
 				// Reuse the existing status line if there is one. This could be a failed
 				// translator attachment or a possible OA PDF found above.
 				let jsonAttachment = jsonItem.attachments && jsonItem.attachments.find(
 					x => x.mimeType == 'application/pdf' && x.isPrimaryPDF
 				);
-				
+
 				// If no translated, no OA, and no custom, don't show a line
 				// If no translated and potential OA, show "Open-Access PDF"
 				// If no translated, no OA, but custom, show custom when it starts
@@ -280,12 +283,12 @@ Zotero.Translate.ItemSaver.prototype = {
 				if (resolvers) {
 					// Add custom resolvers
 					resolvers.push(...Zotero.Attachments.getPDFResolvers(item, ['custom'], true));
-					
+
 					// No translated, no OA, no custom, no status line
 					if (!resolvers.length) {
 						continue;
 					}
-					
+
 					// No translated, no OA, just potential custom, so create a status line
 					if (!jsonAttachment) {
 						jsonAttachment = this._makeJSONAttachment(
@@ -301,17 +304,17 @@ Zotero.Translate.ItemSaver.prototype = {
 					if (resolvers.length) {
 						resolvers = await resolvers[0]();
 					}
-					
+
 					// Add custom resolvers
 					resolvers.push(...Zotero.Attachments.getPDFResolvers(item, ['custom'], true));
-					
+
 					// Failed translated, no OA, no custom, so fail the existing translator line
 					if (!resolvers.length) {
 						attachmentCallback(jsonAttachment, false);
 						continue;
 					}
 				}
-				
+
 				let attachment;
 				try {
 					attachment = await Zotero.Attachments.addPDFFromURLs(
@@ -325,26 +328,24 @@ Zotero.Translate.ItemSaver.prototype = {
 							}
 						}
 					);
-				}
-				catch (e) {
+				} catch (e) {
 					Zotero.logError(e);
 					attachmentCallback(jsonAttachment, false, e);
 					continue;
 				}
-				
+
 				if (attachment) {
 					attachmentCallback(jsonAttachment, 100);
-				}
-				else {
+				} else {
 					attachmentCallback(jsonAttachment, false, "PDF not found");
 				}
 			}
 		}
-		
+
 		return items;
 	},
-	
-	
+
+
 	_makeJSONAttachment: function (parentID, title) {
 		return {
 			id: Zotero.Utilities.randomString(),
@@ -354,8 +355,8 @@ Zotero.Translate.ItemSaver.prototype = {
 			isPrimaryPDF: true
 		};
 	},
-	
-	
+
+
 	_getPDFTitleForAccessMethod: function (accessMethod) {
 		if (accessMethod == 'oa') {
 			return Zotero.getString('findPDF.openAccessPDF');
@@ -365,8 +366,8 @@ Zotero.Translate.ItemSaver.prototype = {
 		}
 		return "PDF";
 	},
-	
-	
+
+
 	"saveCollections": Zotero.Promise.coroutine(function* (collections) {
 		var collectionsToProcess = collections.slice();
 		// Use first collection passed to translate process as the root
@@ -376,7 +377,7 @@ Zotero.Translate.ItemSaver.prototype = {
 		var topLevelCollections = [];
 
 		yield Zotero.DB.executeTransaction(function* () {
-			while(collectionsToProcess.length) {
+			while (collectionsToProcess.length) {
 				var collection = collectionsToProcess.shift();
 				var parentID = parentIDs.shift();
 
@@ -385,8 +386,7 @@ Zotero.Translate.ItemSaver.prototype = {
 				newCollection.name = collection.name;
 				if (parentID) {
 					newCollection.parentID = parentID;
-				}
-				else {
+				} else {
 					newCollection.parentID = rootCollectionID;
 					topLevelCollections.push(newCollection)
 				}
@@ -394,23 +394,23 @@ Zotero.Translate.ItemSaver.prototype = {
 
 				var toAdd = [];
 
-				for(var i=0; i<collection.children.length; i++) {
+				for (var i = 0; i < collection.children.length; i++) {
 					var child = collection.children[i];
-					if(child.type === "collection") {
+					if (child.type === "collection") {
 						// do recursive processing of collections
 						collectionsToProcess.push(child);
 						parentIDs.push(newCollection.id);
 					} else {
 						// add mapped items to collection
-						if(this._IDMap[child.id]) {
+						if (this._IDMap[child.id]) {
 							toAdd.push(this._IDMap[child.id]);
 						} else {
-							Zotero.debug("Translate: Could not map "+child.id+" to an imported item", 2);
+							Zotero.debug("Translate: Could not map " + child.id + " to an imported item", 2);
 						}
 					}
 				}
 
-				if(toAdd.length) {
+				if (toAdd.length) {
 					Zotero.debug("Translate: Adding " + toAdd, 5);
 					yield newCollection.addItems(toAdd);
 				}
@@ -444,8 +444,8 @@ Zotero.Translate.ItemSaver.prototype = {
 		}
 		return newItem;
 	},
-	
-	
+
+
 	_canSaveAttachment: function (attachment) {
 		// Always save link attachments
 		var isLink = Zotero.MIME.isWebPageType(attachment.mimeType)
@@ -453,6 +453,7 @@ Zotero.Translate.ItemSaver.prototype = {
 			&& (attachment.snapshot === false || attachment.linkMode == Zotero.Attachments.LINK_MODE_LINKED_URL);
 		if (isLink || this.attachmentMode == Zotero.Translate.ItemSaver.ATTACHMENT_MODE_DOWNLOAD) {
 			if (!attachment.url && !attachment.document) {
+				dump('attachment url: ' + attachment.url + "\n\n");
 				Zotero.debug("Translate: Not adding attachment: no URL specified");
 				return false;
 			}
@@ -462,8 +463,7 @@ Zotero.Translate.ItemSaver.prototype = {
 						Zotero.debug("Translate: Not adding attachment: automatic snapshots are disabled");
 						return false;
 					}
-				}
-				else {
+				} else {
 					if (!Zotero.Prefs.get("downloadAssociatedFiles")) {
 						Zotero.debug("Translate: Not adding attachment: automatic file attachments are disabled");
 						return false;
@@ -471,15 +471,14 @@ Zotero.Translate.ItemSaver.prototype = {
 				}
 			}
 			return true;
-		}
-		else if (this.attachmentMode == Zotero.Translate.ItemSaver.ATTACHMENT_MODE_FILE) {
+		} else if (this.attachmentMode == Zotero.Translate.ItemSaver.ATTACHMENT_MODE_FILE) {
 			return true;
 		}
 		Zotero.debug('Translate: Ignoring attachment due to ATTACHMENT_MODE_IGNORE');
 		return false;
 	},
-	
-	
+
+
 	/**
 	 * Saves a translator attachment to the database
 	 *
@@ -495,7 +494,7 @@ Zotero.Translate.ItemSaver.prototype = {
 	_saveAttachment: Zotero.Promise.coroutine(function* (attachment, parentItemID, attachmentCallback) {
 		try {
 			let newAttachment;
-			
+
 			// determine whether to save files and attachments
 			var isLink = Zotero.MIME.isWebPageType(attachment.mimeType)
 				// .snapshot coming from most translators, .linkMode coming from RDF
@@ -507,9 +506,9 @@ Zotero.Translate.ItemSaver.prototype = {
 			} else {
 				Zotero.debug('Translate: Ignoring attachment due to ATTACHMENT_MODE_IGNORE');
 			}
-			
+
 			if (!newAttachment) return false; // attachmentCallback should not have been called in this case
-			
+
 			// deproxify url
 			let url = newAttachment.getField('url');
 			if (this._proxy && url) {
@@ -526,22 +525,22 @@ Zotero.Translate.ItemSaver.prototype = {
 			Zotero.debug("Translate: Created attachment; id is " + newAttachment.id, 4);
 			attachmentCallback(attachment, 100);
 			return newAttachment;
-		} catch(e) {
+		} catch (e) {
 			Zotero.debug("Saving attachment failed", 2);
 			Zotero.debug(e, 2);
 			attachmentCallback(attachment, false, e);
 			return false;
 		}
 	}),
-	
+
 	_saveAttachmentFile: Zotero.Promise.coroutine(function* (attachment, parentItemID, attachmentCallback) {
 		Zotero.debug("Translate: Adding attachment", 4);
 		attachmentCallback(attachment, 0);
-		
-		if(!attachment.url && !attachment.path) {
+
+		if (!attachment.url && !attachment.path) {
 			throw new Error("Translate: Ignoring attachment: no path or URL specified");
 		}
-		
+
 		if (attachment.path) {
 			// If we have an explicit "attachments:" value, just save that as a linked file
 			if (attachment.path.startsWith(Zotero.Attachments.BASE_PATH_PLACEHOLDER)) {
@@ -554,7 +553,7 @@ Zotero.Translate.ItemSaver.prototype = {
 					collections: !parentItemID ? this._collections : undefined
 				});
 			}
-			
+
 			var url = Zotero.Attachments.cleanAttachmentURI(attachment.path, false);
 			if (url && /^(?:https?|ftp):/.test(url)) {
 				// A web URL. Don't bother parsing it as path below
@@ -564,7 +563,7 @@ Zotero.Translate.ItemSaver.prototype = {
 				delete attachment.path;
 			}
 		}
-		
+
 		let newItem;
 		var file = attachment.path && this._parsePath(attachment.path);
 		if (!file) {
@@ -592,9 +591,9 @@ Zotero.Translate.ItemSaver.prototype = {
 				.newURI(url, null, null); // This cannot fail, since we check above
 
 			// see if this is actually a file URL
-			if(url.scheme == "file") {
+			if (url.scheme == "file") {
 				throw new Error("Translate: Local file attachments cannot be specified in attachment.url");
-			} else if(url.scheme != "http" && url.scheme != "https") {
+			} else if (url.scheme != "http" && url.scheme != "https") {
 				throw new Error("Translate: " + url.scheme + " protocol is not allowed for attachments from translators.");
 			}
 
@@ -607,10 +606,9 @@ Zotero.Translate.ItemSaver.prototype = {
 				title: attachment.title || undefined,
 				collections: !parentItemID ? this._collections : undefined
 			});
-		}
-		else if (this._linkFiles
-				// Don't link if it's a path to the current storage directory
-				&& !Zotero.File.directoryContains(Zotero.DataDirectory.getSubdirectory('storage'), file.path)) {
+		} else if (this._linkFiles
+			// Don't link if it's a path to the current storage directory
+			&& !Zotero.File.directoryContains(Zotero.DataDirectory.getSubdirectory('storage'), file.path)) {
 			attachment.linkMode = "linked_file";
 			newItem = yield Zotero.Attachments.linkFromFile({
 				file,
@@ -623,8 +621,7 @@ Zotero.Translate.ItemSaver.prototype = {
 			if (attachment.url) {
 				newItem.setNote(attachment.url);
 			}
-		}
-		else {
+		} else {
 			if (attachment.url) {
 				attachment.linkMode = "imported_url";
 				newItem = yield Zotero.Attachments.importSnapshotFromFile({
@@ -636,8 +633,7 @@ Zotero.Translate.ItemSaver.prototype = {
 					parentItemID,
 					collections: !parentItemID ? this._collections : undefined
 				});
-			}
-			else {
+			} else {
 				attachment.linkMode = "imported_file";
 				newItem = yield Zotero.Attachments.importFromFile({
 					file: file,
@@ -647,36 +643,35 @@ Zotero.Translate.ItemSaver.prototype = {
 				if (attachment.title) newItem.setField("title", attachment.title);
 			}
 		}
-		
+
 		return newItem;
 	}),
 
-	"_parsePathURI":function(path) {
+	"_parsePathURI": function (path) {
 		try {
 			var uri = Services.io.newURI(path, "", this._baseURI);
-		} catch(e) {
+		} catch (e) {
 			Zotero.debug("Translate: " + path + " is not a valid URI");
 			return false;
 		}
-		
+
 		try {
 			var file = uri.QueryInterface(Components.interfaces.nsIFileURL).file;
-		}
-		catch (e) {
+		} catch (e) {
 			Zotero.debug("Translate: " + uri.spec + " is not a file URI");
 			return false;
 		}
-		
-		if(file.path == '/') {
+
+		if (file.path == '/') {
 			Zotero.debug("Translate: " + path + " points to root directory");
 			return false;
 		}
-		
-		if(!file.exists()) {
+
+		if (!file.exists()) {
 			Zotero.debug("Translate: File at " + file.path + " does not exist");
 			return false;
 		}
-		
+
 		return file;
 	},
 
@@ -689,81 +684,81 @@ Zotero.Translate.ItemSaver.prototype = {
 			Zotero.debug("Translate: Invalid absolute path: " + path);
 			return false;
 		}
-		
-		if(!file.exists()) {
+
+		if (!file.exists()) {
 			Zotero.debug("Translate: File at absolute path " + file.path + " does not exist");
 			return false;
 		}
-		
+
 		return file;
 	},
 
-	"_parseRelativePath":function(path) {
+	"_parseRelativePath": function (path) {
 		if (!this._baseURI) {
 			Zotero.debug("Translate: Cannot parse as relative path. No base URI available.");
 			return false;
 		}
-		
+
 		var file = this._baseURI.QueryInterface(Components.interfaces.nsIFileURL).file.parent;
 		var splitPath = path.split(/\//g);
-		for(var i=0; i<splitPath.length; i++) {
-			if(splitPath[i] !== "") file.append(splitPath[i]);
+		for (var i = 0; i < splitPath.length; i++) {
+			if (splitPath[i] !== "") file.append(splitPath[i]);
 		}
-		
-		if(!file.exists()) {
+
+		if (!file.exists()) {
 			Zotero.debug("Translate: File at " + file.path + " does not exist");
 			return false;
 		}
-		
+
 		return file;
 	},
 
-	"_parsePath":function(path) {
+	"_parsePath": function (path) {
 		Zotero.debug("Translate: Attempting to parse path " + path);
-		
+
 		var file;
 
 		// First, try to parse as absolute path
-		if((/^[a-zA-Z]:[\\\/]|^\\\\/.test(path) && Zotero.isWin) // Paths starting with drive letter or network shares starting with \\
+		if ((/^[a-zA-Z]:[\\\/]|^\\\\/.test(path) && Zotero.isWin) // Paths starting with drive letter or network shares starting with \\
 			|| (path[0] === "/" && !Zotero.isWin)) {
 			// Forward slashes on Windows are not allowed in filenames, so we can
 			// assume they're meant to be backslashes. Backslashes are technically
 			// allowed on Linux, so the reverse cannot be done reliably.
 			var nativePath = Zotero.isWin ? path.replace('/', '\\', 'g') : path;
 			if (file = this._parseAbsolutePath(nativePath)) {
-				Zotero.debug("Translate: Got file "+nativePath+" as absolute path");
+				Zotero.debug("Translate: Got file " + nativePath + " as absolute path");
 				return file;
 			}
 		}
 
 		// Next, try to parse as URI
-		if((file = this._parsePathURI(path))) {
-			Zotero.debug("Translate: Got "+path+" as URI")
+		if ((file = this._parsePathURI(path))) {
+			Zotero.debug("Translate: Got " + path + " as URI")
 			return file;
-		} else if(path.substr(0, 7) !== "file://") {
+		} else if (path.substr(0, 7) !== "file://") {
 			// If it was a fully qualified file URI, we can give up now
 
 			// Next, try to parse as relative path, replacing backslashes with slashes
-			if((file = this._parseRelativePath(path.replace(/\\/g, "/")))) {
-				Zotero.debug("Translate: Got file "+path+" as relative path");
+			if ((file = this._parseRelativePath(path.replace(/\\/g, "/")))) {
+				Zotero.debug("Translate: Got file " + path + " as relative path");
 				return file;
 			}
 
 			// Next, try to parse as relative path, without replacing backslashes with slashes
-			if((file = this._parseRelativePath(path))) {
-				Zotero.debug("Translate: Got file "+path+" as relative path");
+			if ((file = this._parseRelativePath(path))) {
+				Zotero.debug("Translate: Got file " + path + " as relative path");
 				return file;
 			}
 
-			if(path[0] !== "/") {
+			if (path[0] !== "/") {
 				// Next, try to parse a path with no / as an absolute URI or path
-				if((file = this._parsePathURI("/"+path))) {
-					Zotero.debug("Translate: Got file "+path+" as broken URI");
+				if ((file = this._parsePathURI("/" + path))) {
+					Zotero.debug("Translate: Got file " + path + " as broken URI");
 					return file;
 				}
 
-				if((file = this._parseAbsolutePath("/"+path))) {
-					Zotero.debug("Translate: Got file "+path+" as broken absolute path");
+				if ((file = this._parseAbsolutePath("/" + path))) {
+					Zotero.debug("Translate: Got file " + path + " as broken absolute path");
 					return file;
 				}
 
@@ -771,47 +766,47 @@ Zotero.Translate.ItemSaver.prototype = {
 		}
 
 		// Give up
-		Zotero.debug("Translate: Could not find file "+path)
+		Zotero.debug("Translate: Could not find file " + path)
 
 		return false;
 	},
-	
+
 	_saveAttachmentDownload: Zotero.Promise.coroutine(function* (attachment, parentItemID, attachmentCallback) {
 		Zotero.debug("Translate: Adding attachment", 4);
-		
+
 		let doc = undefined;
-		if(attachment.document) {
+		if (attachment.document) {
 			doc = new XPCNativeWrapper(Zotero.Translate.DOMWrapper.unwrap(attachment.document));
-			if(!attachment.title) attachment.title = doc.title;
+			if (!attachment.title) attachment.title = doc.title;
 		}
-		
+
 		// If no title provided, use "Attachment" as title for progress UI (but not for item)
 		let title = attachment.title || null;
-		if(!attachment.title) {
+		if (!attachment.title) {
 			attachment.title = Zotero.getString("itemTypes.attachment");
 		}
-		
+
 		// Commit to saving
 		attachmentCallback(attachment, 0);
-		
+
 		var isLink = attachment.snapshot === false
 			|| attachment.linkMode == Zotero.Attachments.LINK_MODE_LINKED_URL;
 		if (isLink || this.attachmentMode === Zotero.Translate.ItemSaver.ATTACHMENT_MODE_IGNORE) {
 			// if snapshot is explicitly set to false, attach as link
 			attachment.linkMode = "linked_url";
 			let url, mimeType;
-			if(attachment.document) {
+			if (attachment.document) {
 				url = attachment.document.location.href;
 				mimeType = attachment.mimeType || attachment.document.contentType;
 			} else {
 				url = attachment.url
 				mimeType = attachment.mimeType || undefined;
 			}
-			
-			if(!mimeType || !title) {
+
+			if (!mimeType || !title) {
 				Zotero.debug("Translate: mimeType or title is missing; attaching link to URL will be slower");
 			}
-			
+
 			let cleanURI = Zotero.Attachments.cleanAttachmentURI(url);
 			if (!cleanURI) {
 				throw new Error("Translate: Invalid attachment URL specified <" + url + ">");
@@ -819,12 +814,12 @@ Zotero.Translate.ItemSaver.prototype = {
 			url = Components.classes["@mozilla.org/network/io-service;1"]
 				.getService(Components.interfaces.nsIIOService)
 				.newURI(cleanURI, null, null); // This cannot fail, since we check above
-			
+
 			// Only HTTP/HTTPS links are allowed
-			if(url.scheme != "http" && url.scheme != "https") {
+			if (url.scheme != "http" && url.scheme != "https") {
 				throw new Error("Translate: " + url.scheme + " protocol is not allowed for attachments from translators.");
 			}
-			
+
 			return Zotero.Attachments.linkFromURL({
 				url: cleanURI,
 				parentItemID,
@@ -833,14 +828,14 @@ Zotero.Translate.ItemSaver.prototype = {
 				collections: !parentItemID ? this._collections : undefined
 			});
 		}
-		
+
 		// Snapshot is not explicitly set to false, import as file attachment
-		
+
 		// Import from document
-		if(attachment.document) {
+		if (attachment.document) {
 			Zotero.debug('Importing attachment from document');
 			attachment.linkMode = "imported_url";
-			
+
 			return Zotero.Attachments.importFromDocument({
 				libraryID: this._libraryID,
 				document: attachment.document,
@@ -849,7 +844,7 @@ Zotero.Translate.ItemSaver.prototype = {
 				collections: !parentItemID ? this._collections : undefined
 			});
 		}
-		
+
 		// Import from URL
 		let mimeType = attachment.mimeType ? attachment.mimeType : null;
 		let fileBaseName;
@@ -857,12 +852,12 @@ Zotero.Translate.ItemSaver.prototype = {
 			let parentItem = yield Zotero.Items.getAsync(parentItemID);
 			fileBaseName = Zotero.Attachments.getFileBaseNameFromItem(parentItem);
 		}
-		
+
 		Zotero.debug('Importing attachment from URL');
 		attachment.linkMode = "imported_url";
-		
+
 		attachmentCallback(attachment, 0);
-		
+
 		return Zotero.Attachments.importFromURL({
 			libraryID: this._libraryID,
 			url: attachment.url,
@@ -875,17 +870,17 @@ Zotero.Translate.ItemSaver.prototype = {
 			collections: !parentItemID ? this._collections : undefined
 		});
 	}),
-	
-	"_saveNote":Zotero.Promise.coroutine(function* (note, parentItemID) {
+
+	"_saveNote": Zotero.Promise.coroutine(function* (note, parentItemID) {
 		var myNote = new Zotero.Item('note');
 		myNote.libraryID = this._libraryID;
 		if (parentItemID) {
 			myNote.parentItemID = parentItemID;
 		}
 
-		if(typeof note == "object") {
+		if (typeof note == "object") {
 			myNote.setNote(note.note);
-			if(note.tags) myNote.setTags(this._cleanTags(note.tags));
+			if (note.tags) myNote.setTags(this._cleanTags(note.tags));
 			this._handleRelated(note, myNote);
 		} else {
 			myNote.setNote(note);
@@ -896,7 +891,7 @@ Zotero.Translate.ItemSaver.prototype = {
 		yield myNote.save(this._saveOptions);
 		return myNote;
 	}),
-	
+
 	_cleanCreators: function (creators) {
 		creators.forEach(creator => {
 			if (!creator.creatorType) {
@@ -905,32 +900,32 @@ Zotero.Translate.ItemSaver.prototype = {
 			}
 		});
 	},
-	
+
 	/**
 	 * Remove automatic tags if automatic tags pref is on, and set type
 	 * to automatic if forced
 	 */
-	"_cleanTags":function(tags) {
+	"_cleanTags": function (tags) {
 		// If all tags are automatic and automatic tags pref is on, return immediately
 		let tagPref = Zotero.Prefs.get("automaticTags");
-		if(this._forceTagType == 1 && !tagPref) return [];
+		if (this._forceTagType == 1 && !tagPref) return [];
 
 		let newTags = [];
-		for(let i=0; i<tags.length; i++) {
+		for (let i = 0; i < tags.length; i++) {
 			let tag = tags[i];
 			// Convert raw string to object with 'tag' property
 			if (typeof tag == 'string') {
-				tag = { tag };
+				tag = {tag};
 			}
 			tag.type = this._forceTagType || tag.type || 0;
 			newTags.push(tag);
 		}
 		return newTags;
 	},
-	
-	"_handleRelated":function(item, newItem) {
+
+	"_handleRelated": function (item, newItem) {
 		// add to ID map
-		if(item.itemID || item.id) {
+		if (item.itemID || item.id) {
 			this._IDMap[item.itemID || item.id] = newItem.id;
 		}
 
@@ -947,7 +942,7 @@ Zotero.Translate.ItemSaver.prototype = {
 	}
 }
 
-Zotero.Translate.ItemGetter = function() {
+Zotero.Translate.ItemGetter = function () {
 	this._itemsLeft = [];
 	this._collectionsLeft = null;
 	this._exportFileDirectory = null;
@@ -955,59 +950,65 @@ Zotero.Translate.ItemGetter = function() {
 };
 
 Zotero.Translate.ItemGetter.prototype = {
-	"setItems":function(items) {
+	"setItems": function (items) {
 		this._itemsLeft = items;
-		this._itemsLeft.sort(function(a, b) { return a.id - b.id; });
+		this._itemsLeft.sort(function (a, b) {
+			return a.id - b.id;
+		});
 		this.numItems = this._itemsLeft.length;
 	},
-	
+
 	"setCollection": function (collection, getChildCollections) {
 		// get items in this collection
 		var items = new Set(collection.getChildItems());
-		
-		if(getChildCollections) {
+
+		if (getChildCollections) {
 			// get child collections
 			this._collectionsLeft = Zotero.Collections.getByParent(collection.id, true);
-			
+
 			// get items in child collections
 			for (let collection of this._collectionsLeft) {
 				var childItems = collection.getChildItems();
 				childItems.forEach(item => items.add(item));
 			}
 		}
-		
+
 		this._itemsLeft = Array.from(items.values());
-		this._itemsLeft.sort(function(a, b) { return a.id - b.id; });
+		this._itemsLeft.sort(function (a, b) {
+			return a.id - b.id;
+		});
 		this.numItems = this._itemsLeft.length;
 	},
-	
+
 	"setAll": Zotero.Promise.coroutine(function* (libraryID, getChildCollections) {
 		this._itemsLeft = yield Zotero.Items.getAll(libraryID, true);
-		
-		if(getChildCollections) {
+
+		if (getChildCollections) {
 			this._collectionsLeft = Zotero.Collections.getByLibrary(libraryID, true);
 		}
-		
-		this._itemsLeft.sort(function(a, b) { return a.id - b.id; });
+
+		this._itemsLeft.sort(function (a, b) {
+			return a.id - b.id;
+		});
 		this.numItems = this._itemsLeft.length;
 	}),
-	
-	"exportFiles":function(dir, extension) {
+
+	"exportFiles": function (dir, extension) {
 		// generate directory
 		this._exportFileDirectory = dir.parent.clone();
-		
+
 		// delete this file if it exists
-		if(dir.exists()) {
+		if (dir.exists()) {
 			dir.remove(true);
 		}
-		
+
 		// get name
 		var name = dir.leafName;
 		this._exportFileDirectory.append(name);
-		
+
 		// create directory
 		this._exportFileDirectory.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0o700);
-		
+
 		// generate a new location for the exported file, with the appropriate
 		// extension
 		var location = this._exportFileDirectory.clone();
@@ -1015,30 +1016,28 @@ Zotero.Translate.ItemGetter.prototype = {
 
 		return location;
 	},
-	
+
 	/**
 	 * Converts an attachment to array format and copies it to the export folder if desired
 	 */
 	"_attachmentToArray": function (attachment) {
 		var attachmentArray = Zotero.Utilities.Internal.itemToExportFormat(attachment, this.legacy);
 		var linkMode = attachment.attachmentLinkMode;
-		if(linkMode != Zotero.Attachments.LINK_MODE_LINKED_URL) {
+		if (linkMode != Zotero.Attachments.LINK_MODE_LINKED_URL) {
 			attachmentArray.localPath = attachment.getFilePath();
-			
-			if(this._exportFileDirectory) {
+
+			if (this._exportFileDirectory) {
 				var exportDir = this._exportFileDirectory;
-				
+
 				// Add path and filename if not an internet link
 				let attachFile;
 				if (attachmentArray.localPath) {
 					try {
 						attachFile = Zotero.File.pathToFile(attachmentArray.localPath);
-					}
-					catch (e) {
+					} catch (e) {
 						Zotero.logError(e);
 					}
-				}
-				else {
+				} else {
 					Zotero.logError(`Path doesn't exist for attachment ${attachment.libraryKey} `
 						+ '-- not exporting file');
 				}
@@ -1046,66 +1045,66 @@ Zotero.Translate.ItemGetter.prototype = {
 				if (attachFile && attachFile.exists()) {
 					attachmentArray.defaultPath = "files/" + attachment.id + "/" + attachFile.leafName;
 					attachmentArray.filename = attachFile.leafName;
-					
+
 					/**
 					 * Copies the attachment file to the specified relative path from the
 					 * export directory.
-					 * @param {String} attachPath The path to which the file should be exported 
+					 * @param {String} attachPath The path to which the file should be exported
 					 *    including the filename. If supporting files are included, they will be
-					 *    copied as well without any renaming. 
+					 *    copied as well without any renaming.
 					 * @param {Boolean} overwriteExisting Optional - If this is set to false, the
 					 *    function will throw an error when exporting a file would require an existing
 					 *    file to be overwritten. If true, the file will be silently overwritten.
-					 *    defaults to false if not provided. 
+					 *    defaults to false if not provided.
 					 */
-					attachmentArray.saveFile = function(attachPath, overwriteExisting) {
+					attachmentArray.saveFile = function (attachPath, overwriteExisting) {
 						// Ensure a valid path is specified
-						if(attachPath === undefined || attachPath == "") {
+						if (attachPath === undefined || attachPath == "") {
 							throw new Error("ERROR_EMPTY_PATH");
 						}
-						
+
 						// Set the default value of overwriteExisting if it was not provided
 						if (overwriteExisting === undefined) {
 							overwriteExisting = false;
 						}
-						
+
 						// Separate the path into a list of subdirectories and the attachment filename,
 						// and initialize the required file objects
 						var targetFile = exportDir.clone();
 						for (let dir of attachPath.split("/")) targetFile.append(dir);
-						
+
 						// First, check that we have not gone lower than exportDir in the hierarchy
 						var parent = targetFile, inExportFileDirectory;
-						while((parent = parent.parent)) {
-							if(exportDir.equals(parent)) {
+						while ((parent = parent.parent)) {
+							if (exportDir.equals(parent)) {
 								inExportFileDirectory = true;
 								break;
 							}
 						}
-						
-						if(!inExportFileDirectory) {
-							throw new Error("Invalid path; attachment cannot be placed above export "+
+
+						if (!inExportFileDirectory) {
+							throw new Error("Invalid path; attachment cannot be placed above export " +
 								"directory in the file hierarchy");
 						}
-						
+
 						// Create intermediate directories if they don't exist
 						parent = targetFile;
-						while((parent = parent.parent) && !parent.exists()) {
+						while ((parent = parent.parent) && !parent.exists()) {
 							parent.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0o700);
 						}
-						
+
 						// Delete any existing file if overwriteExisting is set, or throw an exception
 						// if it is not
-						if(targetFile.exists()) {
-							if(overwriteExisting) {
+						if (targetFile.exists()) {
+							if (overwriteExisting) {
 								targetFile.remove(false);
 							} else {
 								throw new Error("ERROR_FILE_EXISTS " + targetFile.leafName);
 							}
 						}
-						
+
 						var directory = targetFile.parent;
-						
+
 						// The only attachments that can have multiple supporting files are imported
 						// attachments of mime type text/html
 						//
@@ -1113,8 +1112,8 @@ Zotero.Translate.ItemGetter.prototype = {
 						// It could be restored (using hasMultipleFiles()) when this is made
 						// async, but it's probably not necessary. (The below can also be changed
 						// to use OS.File.DirectoryIterator.)
-						if(attachment.attachmentContentType == "text/html"
-								&& linkMode != Zotero.Attachments.LINK_MODE_LINKED_FILE) {
+						if (attachment.attachmentContentType == "text/html"
+							&& linkMode != Zotero.Attachments.LINK_MODE_LINKED_FILE) {
 							// Attachment is a snapshot with supporting files. Check if any of the
 							// supporting files would cause a name conflict, and build a list of transfers
 							// that should be performed
@@ -1123,18 +1122,18 @@ Zotero.Translate.ItemGetter.prototype = {
 							while (files.hasMoreElements()) {
 								file = files.getNext();
 								file.QueryInterface(Components.interfaces.nsIFile);
-								
+
 								// Ignore the main attachment file (has already been checked for name conflict)
-								if(attachFile.equals(file)) {
+								if (attachFile.equals(file)) {
 									continue;
 								}
-								
-								// Remove any existing files in the target destination if overwriteExisting 
+
+								// Remove any existing files in the target destination if overwriteExisting
 								// is set, or throw an exception if it is not
 								var targetSupportFile = targetFile.parent.clone();
 								targetSupportFile.append(file.leafName);
-								if(targetSupportFile.exists()) {
-									if(overwriteExisting) {
+								if (targetSupportFile.exists()) {
+									if (overwriteExisting) {
 										targetSupportFile.remove(false);
 									} else {
 										throw new Error("ERROR_FILE_EXISTS " + targetSupportFile.leafName);
@@ -1142,10 +1141,10 @@ Zotero.Translate.ItemGetter.prototype = {
 								}
 								copySrcs.push(file.clone());
 							}
-							
+
 							// No conflicts were detected or all conflicts were resolved, perform the copying
 							attachFile.copyTo(directory, targetFile.leafName);
-							for(var i = 0; i < copySrcs.length; i++) {
+							for (var i = 0; i < copySrcs.length; i++) {
 								copySrcs[i].copyTo(directory, copySrcs[i].leafName);
 							}
 						} else {
@@ -1153,29 +1152,29 @@ Zotero.Translate.ItemGetter.prototype = {
 							// Copy the file to the specified location
 							attachFile.copyTo(directory, targetFile.leafName);
 						}
-						
+
 						attachmentArray.path = targetFile.path;
 					};
 				}
 			}
 		}
-		
+
 		return attachmentArray;
 	},
-	
+
 	/**
 	 * Retrieves the next available item
 	 */
 	"nextItem": function () {
-		while(this._itemsLeft.length != 0) {
+		while (this._itemsLeft.length != 0) {
 			var returnItem = this._itemsLeft.shift();
 			// export file data for single files
-			if(returnItem.isAttachment()) {		// an independent attachment
+			if (returnItem.isAttachment()) {		// an independent attachment
 				var returnItemArray = this._attachmentToArray(returnItem);
-				if(returnItemArray) return returnItemArray;
+				if (returnItemArray) return returnItemArray;
 			} else {
 				var returnItemArray = Zotero.Utilities.Internal.itemToExportFormat(returnItem, this.legacy);
-				
+
 				// get attachments, although only urls will be passed if exportFileData is off
 				returnItemArray.attachments = [];
 				if (returnItem.isRegularItem()) {
@@ -1183,22 +1182,22 @@ Zotero.Translate.ItemGetter.prototype = {
 					for (let attachmentID of attachments) {
 						var attachment = Zotero.Items.get(attachmentID);
 						var attachmentInfo = this._attachmentToArray(attachment);
-						
-						if(attachmentInfo) {
+
+						if (attachmentInfo) {
 							returnItemArray.attachments.push(attachmentInfo);
 						}
 					}
 				}
-				
+
 				return returnItemArray;
 			}
 		}
 		return false;
 	},
-	
-	"nextCollection":function() {
-		if(!this._collectionsLeft || this._collectionsLeft.length == 0) return false;
-	
+
+	"nextCollection": function () {
+		if (!this._collectionsLeft || this._collectionsLeft.length == 0) return false;
+
 		var returnItem = this._collectionsLeft.shift();
 		var obj = returnItem.serialize(true);
 		obj.id = obj.primary.collectionID;
@@ -1206,4 +1205,6 @@ Zotero.Translate.ItemGetter.prototype = {
 		return obj;
 	}
 }
-Zotero.Translate.ItemGetter.prototype.__defineGetter__("numItemsRemaining", function() { return this._itemsLeft.length });
+Zotero.Translate.ItemGetter.prototype.__defineGetter__("numItemsRemaining", function () {
+	return this._itemsLeft.length
+});

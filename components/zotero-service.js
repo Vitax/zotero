@@ -95,6 +95,7 @@ const xpcomFilesLocal = [
 	'data/tags',
 	'db',
 	'duplicates',
+	'expressionsOfConcern',
 	'feedReader',
 	'fulltext',
 	'id',

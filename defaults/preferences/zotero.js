@@ -194,3 +194,7 @@ pref("extensions.zotero.translators.RIS.import.keepID", false);
 // Retracted Items
 pref("extensions.zotero.retractions.enabled", true);
 pref("extensions.zotero.retractions.recentItems", "[]");
+
+// ExpressionOfConcern Items
+pref("extensions.zotero.expressionsOfConcern.enabled", true);
+pref("extensions.zotero.expressionsOfConcern.recentItems", "[]");

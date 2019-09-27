@@ -716,6 +716,7 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			yield Zotero.Groups.init();
 			yield Zotero.Relations.init();
 			yield Zotero.Retractions.init();
+			yield Zotero.ExpressionsOfConcern.init();
 			
 			// Migrate fields from Extra that can be moved to item fields after a schema update
 			//
