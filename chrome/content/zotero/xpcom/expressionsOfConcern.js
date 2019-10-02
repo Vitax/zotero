@@ -159,6 +159,15 @@ Zotero.ExpressionsOfConcern = {
 		await Zotero.Notifier.trigger("trash", "expressionOfConcern", [itemID]);
 	},
 
+	/**
+	 *
+	 * @param requestData {XMLDocument}
+	 * @private
+	 */
+	_getHost: function (requestData) {
+		Zotero.debug(requestData);
+	},
+
 	_removeAllEntries: async function () {
 		let queryString = "select itemID from expressionsOfConcern";
 		let itemIDs = await Zotero.DB.queryAsync(queryString);
@@ -188,8 +197,7 @@ Zotero.ExpressionsOfConcern = {
                                       left join itemDataValues on itemDataValues.valueID = itemData.valueID
                              where itemTypeFields.fieldID = 1
                                and itemAttachments.contentType <> 'application/pdf'`;
-		dump(queryString + "\n\n");
-		let filteredItems = await Zotero.DB.queryAsync(queryString)
+		let filteredItems = await Zotero.DB.queryAsync(queryString);
 		return filteredItems;
 	},
 
@@ -220,12 +228,31 @@ Zotero.ExpressionsOfConcern = {
 	scrapeExpressionsOfConcern: async function (items) {
 		for (let item of items) {
 			await Zotero.HTTP.request("GET", item.value, {})
-				.then((html) => {
-					dump("html document: \n" + html.responseText + "\nid " + item.itemID + "\n\n");
-					Zotero.debug("html document: \n" + html + "\n\n");
+				.then((response) => {
+					let htmlDoc = response.responseXML;
+
+					if (!htmlDoc) {
+						var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+							.createInstance(Components.interfaces.nsIDOMParser);
+						htmlDoc = parser.parseFromString(response.responseText, "text/html");
+					}
+
+					let mainContent = htmlDoc.getElementById('maincontent');
+					let errorsContainer = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
+					let headers = Zotero.Utilities.xpath(errorsContainer, '//h3');
+					for (let header of headers) {
+						if (header.innerHTML.toLowerCase() === "expression of concern in") {
+							Zotero.debug('header: ' + header.innerHTML + "\n\n");
+							let expressionsOfConcernsList = Zotero.Utilities.xpath(errorsContainer, '//ul/li[@class="comments"');
+
+							Zotero.debug('size of expressions: ' + expressionsOfConcernsList.length + '\n\n');
+							for (let expressionOfConcern of expressionsOfConcernsList) {
+								Zotero.debug('link: ' + Zotero.Utilities.xpath(expressionOfConcern, "//a") + "\n\n");
+							}
+						}
+					}
 				}).catch((error) => {
-					dump("error while retrieving document: " + error + "\n\n");
-					Zotero.debug("error while retrieving document: " + error + "\n\n");
+					Zotero.debug("Error while retrieving document: " + error + "\n\n");
 				});
 		}
 	},
