@@ -101,13 +101,13 @@ Zotero.ExpressionsOfConcern = {
 
 	/**
 	 *
-	 * @param itemID {number} primary key of the item which has an expression of concern
-	 * @param data {string[]} data which gets stored into the expression of concern
+	 * @param itemID {string | number} primary key of the item which has an expression of concern
+	 * @param data {string} data which gets stored into the expression of concern
 	 * @returns {Promise<void>}
 	 * @private
 	 */
 	_addEntry: async function (itemID, data) {
-		const queryString = "insert into expressionsOfConcern (itemID, data) values(?, ?)";
+		const queryString = "insert or ignore into expressionsOfConcern (itemID, data) values(?, ?)";
 		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
 	},
 
@@ -238,16 +238,30 @@ Zotero.ExpressionsOfConcern = {
 					}
 
 					let mainContent = htmlDoc.getElementById('maincontent');
-					let errorsContainer = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
-					let headers = Zotero.Utilities.xpath(errorsContainer, '//h3');
-					for (let header of headers) {
-						if (header.innerHTML.toLowerCase() === "expression of concern in") {
-							Zotero.debug('header: ' + header.innerHTML + "\n\n");
-							let expressionsOfConcernsList = Zotero.Utilities.xpath(errorsContainer, '//ul/li[@class="comments"');
+					let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
 
-							Zotero.debug('size of expressions: ' + expressionsOfConcernsList.length + '\n\n');
-							for (let expressionOfConcern of expressionsOfConcernsList) {
-								Zotero.debug('link: ' + Zotero.Utilities.xpath(expressionOfConcern, "//a") + "\n\n");
+					let headers = Zotero.Utilities.xpath(errorList, 'h3');
+					if (this.containsExpressionsOfConcern(headers)) {
+						for (let ul of errorList) {
+							let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]');
+							for (let link of linkList) {
+								let linkElement = parser.parseFromString(link.innerHTML, 'text/html');
+								let linkTag = linkElement.getElementsByTagName('a')[0];
+
+								let href = linkTag.getAttribute('ref');
+								let data = [];
+								if (href.includes('type=expressionofconcernin')) {
+									let itemID = item.itemID;
+									let expressionOfConcernLink = linkTag.hostname + linkTag.getAttribute('href');
+									let shortText = linkTag.innerHTML;
+
+									data.push({
+										link: expressionOfConcernLink,
+										shortText: shortText
+									});
+
+									this._addEntry(itemID, JSON.stringify(data));
+								}
 							}
 						}
 					}
@@ -256,4 +270,29 @@ Zotero.ExpressionsOfConcern = {
 				});
 		}
 	},
+
+	/**
+	 * Simple function to check if an item contains expression of concern information
+	 * @param headerList {HTMLElement} the div which contains the errors in the html dom
+	 * @returns {boolean} returns true of expressions of concerns are included in the item
+	 */
+	containsExpressionsOfConcern: function (headerList) {
+		for (let header of headerList) {
+			if (header.innerHTML.toLowerCase().includes('expression of concern in')) {
+				return true;
+			}
+		}
+
+		return false;
+	},
+
+	/**
+	 *
+	 * @param expressionOfConcern {Zotero.ExpressionsOfConcern}
+	 * @param data {{itemID: string, data: [{link: string, shortText: string}]}
+	 * @private
+	 */
+	_expressionOfConcernShouldUpdate(expressionOfConcern, data) {
+
+	}
 };
