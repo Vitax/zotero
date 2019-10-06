@@ -45,6 +45,47 @@
 	margin-left: 5px;
 }
 
+#expression-of-concern-box {
+	cursor: default;
+}
+
+#expression-of-concern-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1.5em 1em;
+	background: #ebccd1;
+	color: white;
+	font-weight: bolder;
+}
+
+/* parent div of all information for expression of concerns */
+#expression-of-concern-details {
+	background: #fbf0f0;
+	padding: .5em 1.5em;
+	margin-top: 0;
+	margin-bottom: 1em;
+	cursor: text;
+	-moz-user-select: text;
+}
+
+
+#expression-of-concern-details dt {
+	margin-left: 2em;
+}
+
+#expression-of-concern-details a {
+	text-decoration: underline;
+}
+
+#expression-of-concern-links li {
+	list-style: none;
+}
+
+#expression-of-concern-links li:not(:first-child) {
+	margin-top: .75em;
+}
+
 #retraction-box {
 	cursor: default;
 }
@@ -107,7 +148,7 @@
 	text-align: right;
 	margin-top: .3em;
 	margin-right: -1.2em;
-	margin-bottom: .3em;
+	margin-bottom: .2em;
 }
 
 #retraction-hide button {

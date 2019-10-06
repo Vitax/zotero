@@ -126,12 +126,9 @@ Zotero.Translate.ItemSaver.prototype = {
 
 					item.fromJSON(this._copyJSONItemForImport(jsonItem));
 
-					dump('json item url: ' + jsonItem.url + "\n\n");
-
 					// deproxify url
 					if (this._proxy && jsonItem.url) {
 						let url = this._proxy.toProper(jsonItem.url);
-						dump('json item url: ' + url + "\n\n");
 						Zotero.debug(`Deproxifying item url ${jsonItem.url} with scheme ${this._proxy.scheme} to ${url}`, 5);
 						item.setField('url', url);
 					}
@@ -453,7 +450,6 @@ Zotero.Translate.ItemSaver.prototype = {
 			&& (attachment.snapshot === false || attachment.linkMode == Zotero.Attachments.LINK_MODE_LINKED_URL);
 		if (isLink || this.attachmentMode == Zotero.Translate.ItemSaver.ATTACHMENT_MODE_DOWNLOAD) {
 			if (!attachment.url && !attachment.document) {
-				dump('attachment url: ' + attachment.url + "\n\n");
 				Zotero.debug("Translate: Not adding attachment: no URL specified");
 				return false;
 			}

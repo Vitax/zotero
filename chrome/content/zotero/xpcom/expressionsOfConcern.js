@@ -61,19 +61,19 @@ Zotero.ExpressionsOfConcern = {
 		// look into the dom
 		// extract expressions of concerns
 		// cache them into a file ?
-		let items = await this.lookupExpressionsOfConcernForItems();
+		const items = await this.lookupExpressionsOfConcernForItems();
 		if (items) {
-			await this.scrapeExpressionsOfConcern(items);
+			this.scrapeExpressionsOfConcern(items);
 		}
 
 
 		/**
 		 * Idea after everything basic functionality works:
-		 *		- Setup a Database with a local service which scrapes PubMed and other pages for publications with expressions of concern
-		 *		- Store scraping processes into tables
-		 *		- Have some kind of hash which determines the version of the database
-		 *		- Request the Hash form the database and compare the local cache file hash with it
-		 *		- Get new Database if they do not match !
+		 *        - Setup a Database with a local service which scrapes PubMed and other pages for publications with expressions of concern
+		 *        - Store scraping processes into tables
+		 *        - Have some kind of hash which determines the version of the database
+		 *        - Request the Hash form the database and compare the local cache file hash with it
+		 *        - Get new Database if they do not match !
 		 */
 
 		this._initialized = true;
@@ -102,12 +102,12 @@ Zotero.ExpressionsOfConcern = {
 	/**
 	 *
 	 * @param itemID {string | number} primary key of the item which has an expression of concern
-	 * @param data {string} data which gets stored into the expression of concern
+	 * @param data {{shortText: *, links: *}} data which gets stored into the expression of concern
 	 * @returns {Promise<void>}
 	 * @private
 	 */
 	_addEntry: async function (itemID, data) {
-		const queryString = "insert or ignore into expressionsOfConcern (itemID, data) values(?, ?)";
+		const queryString = "insert or ignore into expressionsOfConcern (itemID, data) values (?, ?)";
 		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
 	},
 
@@ -119,53 +119,48 @@ Zotero.ExpressionsOfConcern = {
 	 * @private
 	 */
 	_updateEntry: async function (itemID, newData) {
+		const currentExpressionOfConcern = await this.getEntry(itemID);
 		const queryString = "update expressionsOfConcern set itemID=?, data=? where itemID=? values (?, ?, ?)";
-		await Zotero.DB.queryAsync(queryString, itemID, JSON.stringify(newData), itemID);
+		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(newData), itemID]);
 	},
 
 	/**
 	 *
-	 * @param itemID {number} primary key of the item for which its expression of concern should be retrieved
+	 * @param item {Zotero.Item} primary key of the item for which its expression of concern should be retrieved
 	 * @returns {Promise<void>}
-	 * @private
 	 */
-	_getEntry: async function (itemID) {
-		const queryString = "select expressionOfConcern from expressionsOfConcern where itemID=?";
-		await Zotero.DB.queryAsync(queryString, [itemID]);
-	},
+	getEntry: async function (item) {
+		const queryString = "select * from expressionsOfConcern where itemID=?";
+		const eoc = await Zotero.DB.queryAsync(queryString, item.id);
 
-	/**
-	 *
-	 * @param itemID {number} primary key of the item for which its expression of concern should be retrieved
-	 * @returns {Promise<void>}
-	 */
-	getEntry: async function (itemID) {
-		await this._getEntry(itemID);
-	},
+		if (!eoc) {
+			return false;
+		}
 
-	/**
-	 * @returns {Promise<void>}
-	 * @private
-	 */
-	_getEntries: async function () {
-		const queryString = "select * form expressionsOfConcern";
-		await Zotero.DB.queryAsync(queryString);
+		Zotero.debug('eoc: ' + eoc.data.shortText);
+
+		return eoc;
 	},
 
 	_removeEntry: async function (itemID) {
 		const queryString = "delete from expressionsOfConcern where itemID=?";
-		await Zotero.DB.queryAsync(queryString, [itemID]);
+		await Zotero.DB.queryAsync(queryString, itemID);
 
 		await Zotero.Notifier.trigger("trash", "expressionOfConcern", [itemID]);
 	},
 
 	/**
-	 *
-	 * @param requestData {XMLDocument}
+	 * crops the hostname and removes the part which will most likely be the ref
+	 * @param sourceLink {string} full hostname of the item
+	 * @returns {string}
 	 * @private
 	 */
-	_getHost: function (requestData) {
-		Zotero.debug(requestData);
+	_getHostname: function (sourceLink) {
+		let hostnameArray = sourceLink.split('/');
+		let refPart = '/' + hostnameArray[hostnameArray - 2] + hostnameArray[hostnameArray.length - 1];
+		let hostname = sourceLink.replace(refPart, '');
+
+		return hostname;
 	},
 
 	_removeAllEntries: async function () {
@@ -183,6 +178,15 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	/**
+	 *
+	 * @param item { Zotero.Item } Item which will be checked for expressions of concerns
+	 */
+	hasExpressionsOfConcern: function (item) {
+		let expressionOfConcern = this.getEntry(item.id);
+		return !!expressionOfConcern;
+	},
+
+	/**
 	 * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
 	 * Query is not working
 	 * @returns {Promise<void>}
@@ -193,11 +197,11 @@ Zotero.ExpressionsOfConcern = {
                                       left join itemTypeFields on items.itemTypeID = itemTypeFields.itemTypeID
                                       left join itemData on itemData.fieldID = itemTypeFields.fieldID
                                       left join itemAttachments on itemAttachments.parentItemID = items.itemID and
-                                                                   itemAttachments.itemID = itemData.itemID
+																   itemAttachments.itemID = itemData.itemID
                                       left join itemDataValues on itemDataValues.valueID = itemData.valueID
                              where itemTypeFields.fieldID = 1
                                and itemAttachments.contentType <> 'application/pdf'`;
-		let filteredItems = await Zotero.DB.queryAsync(queryString);
+		const filteredItems = await Zotero.DB.queryAsync(queryString);
 		return filteredItems;
 	},
 
@@ -216,7 +220,7 @@ Zotero.ExpressionsOfConcern = {
                                       left join itemDataValues on itemDataValues.valueID = itemData.valueID
                              where itemTypeFields.fieldID = 1
                                and itemAttachments.contentType <> 'appliation/pdf'`;
-		let filteredItem = await Zotero.DB.queryAsync(queryString);
+		const filteredItem = await Zotero.DB.queryAsync(queryString);
 		return filteredItem;
 	},
 
@@ -243,26 +247,28 @@ Zotero.ExpressionsOfConcern = {
 					let headers = Zotero.Utilities.xpath(errorList, 'h3');
 					if (this.containsExpressionsOfConcern(headers)) {
 						for (let ul of errorList) {
-							let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]');
+							let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
+							let links = [];
+							let shortText;
 							for (let link of linkList) {
-								let linkElement = parser.parseFromString(link.innerHTML, 'text/html');
-								let linkTag = linkElement.getElementsByTagName('a')[0];
+								let ref = link.getAttribute('ref');
+								if (ref.includes('type=expressionofconcernin')) {
+									shortText = link.innerHTML;
+									let expressionOfConcernLink = link.href;
 
-								let href = linkTag.getAttribute('ref');
-								let data = [];
-								if (href.includes('type=expressionofconcernin')) {
-									let itemID = item.itemID;
-									let expressionOfConcernLink = linkTag.hostname + linkTag.getAttribute('href');
-									let shortText = linkTag.innerHTML;
+									if (!expressionOfConcernLink.includes('http')) {
+										expressionOfConcernLink = this._getHostname(item.value) + link.href;
+									}
 
-									data.push({
-										link: expressionOfConcernLink,
-										shortText: shortText
-									});
-
-									this._addEntry(itemID, JSON.stringify(data));
+									links.push(expressionOfConcernLink);
 								}
 							}
+							let data = {
+								links: links,
+								shortText: shortText
+							};
+
+							this._addEntry(item.itemID, data);
 						}
 					}
 				}).catch((error) => {
@@ -284,15 +290,5 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		return false;
-	},
-
-	/**
-	 *
-	 * @param expressionOfConcern {Zotero.ExpressionsOfConcern}
-	 * @param data {{itemID: string, data: [{link: string, shortText: string}]}
-	 * @private
-	 */
-	_expressionOfConcernShouldUpdate(expressionOfConcern, data) {
-
 	}
 };
