@@ -2375,31 +2375,34 @@
                                     return;
                                 }
 
-                                let eoc = await Zotero.ExpressionsOfConcern.getEntry(item);
+                                let expressionOfConcern = await Zotero.ExpressionsOfConcern.getEntry(item);
+                                let expressionOfConcernData = expressionOfConcern.data;
 
                                 // make expression of concern div visible
                                 this._id('expression-of-concern-box').hidden = false;
 
-                                if (eoc.data.shortText) {
-                                    let eocReasons = this._id('expression-of-concern-reasons');
-                                    let dt = document.createElementNS(htmlNS, 'dt');
-                                    let dd = document.createElementNS(htmlNS, 'dd');
+                                if (expressionOfConcernData.notices.length) {
+                                    for (let notice of expressionOfConcernData.notices) {
+                                        let eocReasons = this._id('expression-of-concern-reasons');
+                                        let dt = document.createElementNS(htmlNS, 'dt');
+                                        let dd = document.createElementNS(htmlNS, 'dd');
 
-                                    dt.textContent = "";
-                                    dd.textContent = eoc.data.shortText;
-                                    eocReasons.appendChild(dt);
-                                    eocReasons.appendChild(dd);
+                                        dt.textContent = "";
+                                        dd.textContent = notice;
+                                        eocReasons.appendChild(dt);
+                                        eocReasons.appendChild(dd);
+                                    }
                                 } else {
                                     this._id('expression-of-concern-reasons').hidden = true;
                                 }
 
-                                if (eoc.data.length) {
+                                if (expressionOfConcernData.links.length) {
                                     let eocLinks = this._id('expression-of-concern-links');
 
-                                    for (let data of eoc.data.links) {
+                                    for (let link of expressionOfConcernData.links) {
                                         let a = document.createElementNS(htmlNS, 'a');
-                                        a.textContent = data.link;
-                                        a.href = data.link;
+                                        a.textContent = link;
+                                        a.href = link;
 
                                         eocLinks.appendChild(a);
                                     }

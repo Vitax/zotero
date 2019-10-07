@@ -45,11 +45,11 @@ Zotero.ExpressionsOfConcern = {
 			return;
 		}
 
-		const queryString = "create table if not exists expressionsOfConcern (\nitemID integer primary key, \ndata text, \nforeign key (itemID) references items(itemID)on delete cascade )";
+		const queryString = "CREATE TABLE IF NOT EXISTS expressionsOfConcern (\nitemID INTEGER PRIMARY KEY, \ndata text, \nFOREIGN KEY (itemID) REFERENCES items(itemID)on delete cascade )";
 		await Zotero.DB.queryAsync(queryString);
 
 		try {
-			const queryString = "alter table expressionsOfConcern add column flag int default 0";
+			const queryString = "ALTER TABLE expressionsOfConcern ADD COLUMN flag INT DEFAULT 0";
 			await Zotero.DB.queryAsync(queryString);
 		} catch (error) {
 			Zotero.debug("Error while altering ExpressionsOfConcern table: " + error.toString());
@@ -61,7 +61,16 @@ Zotero.ExpressionsOfConcern = {
 		// look into the dom
 		// extract expressions of concerns
 		// cache them into a file ?
+
+		let expressionsOfConcern = await this._getEntries();
+
+		for (let expressionOfConcern of expressionsOfConcern) {
+			Zotero.debug('in init: ' + expressionOfConcern.itemID);
+			this._expressionsOfConcern.set(expressionOfConcern.itemID, expressionOfConcern.flag);
+		}
+
 		const items = await this.lookupExpressionsOfConcernForItems();
+
 		if (items) {
 			this.scrapeExpressionsOfConcern(items);
 		}
@@ -102,13 +111,13 @@ Zotero.ExpressionsOfConcern = {
 	/**
 	 *
 	 * @param itemID {string | number} primary key of the item which has an expression of concern
-	 * @param data {{shortText: *, links: *}} data which gets stored into the expression of concern
+	 * @param data {{shortTexts: *, links: *}} data which gets stored into the expression of concern
 	 * @returns {Promise<void>}
 	 * @private
 	 */
 	_addEntry: async function (itemID, data) {
-		const queryString = "insert or ignore into expressionsOfConcern (itemID, data) values (?, ?)";
-		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
+		const queryString = "INSERT OR IGNORE INTO expressionsOfConcern (itemID, data) VALUES (?, ?)";
+		await Zotero.DB.queryAsync(queryString, [itemID, data]);
 	},
 
 	/**
@@ -116,11 +125,11 @@ Zotero.ExpressionsOfConcern = {
 	 * @param itemID {number} primary key of the item who's expression of concern should get updated
 	 * @param newData {string[]} new content of the expression of concern
 	 * @returns {Promise<void>}
-	 * @private
+	 * @privates
 	 */
 	_updateEntry: async function (itemID, newData) {
-		const currentExpressionOfConcern = await this.getEntry(itemID);
-		const queryString = "update expressionsOfConcern set itemID=?, data=? where itemID=? values (?, ?, ?)";
+		const currentExpressionOfConcern = await this.getEntryData(itemID);
+		const queryString = "UPDATE expressionsOfConcern SET itemID=?, data=? WHERE itemID=? VALUES (?, ?, ?)";
 		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(newData), itemID]);
 	},
 
@@ -130,20 +139,26 @@ Zotero.ExpressionsOfConcern = {
 	 * @returns {Promise<void>}
 	 */
 	getEntry: async function (item) {
-		const queryString = "select * from expressionsOfConcern where itemID=?";
-		const eoc = await Zotero.DB.queryAsync(queryString, item.id);
+		const queryString = "SELECT * FROM expressionsOfConcern WHERE itemID=?";
+		const expressionOfConcern = await Zotero.DB.queryAsync(queryString, item.id);
 
-		if (!eoc) {
+		if (!expressionOfConcern) {
 			return false;
 		}
+		expressionOfConcern.data = JSON.parse(expressionOfConcern.data);
 
-		Zotero.debug('eoc: ' + eoc.data.shortText);
+		return expressionOfConcern;
+	},
 
-		return eoc;
+	_getEntries: async function () {
+		const queryString = "SELECT * FROM expressionsOfConcern";
+		let expressionsOfConcern = await Zotero.DB.queryAsync(queryString);
+
+		return expressionsOfConcern;
 	},
 
 	_removeEntry: async function (itemID) {
-		const queryString = "delete from expressionsOfConcern where itemID=?";
+		const queryString = "DELETE FROM expressionsOfConcern WHERE itemID=?";
 		await Zotero.DB.queryAsync(queryString, itemID);
 
 		await Zotero.Notifier.trigger("trash", "expressionOfConcern", [itemID]);
@@ -164,7 +179,7 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	_removeAllEntries: async function () {
-		let queryString = "select itemID from expressionsOfConcern";
+		let queryString = "SELECT itemID FROM expressionsOfConcern";
 		let itemIDs = await Zotero.DB.queryAsync(queryString);
 
 		if (!itemIDs.length) {
@@ -180,10 +195,16 @@ Zotero.ExpressionsOfConcern = {
 	/**
 	 *
 	 * @param item { Zotero.Item } Item which will be checked for expressions of concerns
+	 * @returns {boolean}
 	 */
 	hasExpressionsOfConcern: function (item) {
-		let expressionOfConcern = this.getEntry(item.id);
-		return !!expressionOfConcern;
+		let expressionOfConcern = this._expressionsOfConcern.has(item.id);
+
+		if (!expressionOfConcern) {
+			return false;
+		}
+
+		return true;
 	},
 
 	/**
@@ -192,15 +213,15 @@ Zotero.ExpressionsOfConcern = {
 	 * @returns {Promise<void>}
 	 */
 	lookupExpressionsOfConcernForItems: async function () {
-		const queryString = `select items.itemID, itemDataValues.value
-                             from items
-                                      left join itemTypeFields on items.itemTypeID = itemTypeFields.itemTypeID
-                                      left join itemData on itemData.fieldID = itemTypeFields.fieldID
-                                      left join itemAttachments on itemAttachments.parentItemID = items.itemID and
+		const queryString = `SELECT items.itemID, itemDataValues.value
+                             FROM items
+                                      LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
+                                      LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
+                                      LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
 																   itemAttachments.itemID = itemData.itemID
-                                      left join itemDataValues on itemDataValues.valueID = itemData.valueID
-                             where itemTypeFields.fieldID = 1
-                               and itemAttachments.contentType <> 'application/pdf'`;
+                                      LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
+                             WHERE itemTypeFields.fieldID = 1
+                               AND itemAttachments.contentType <> 'application/pdf'`;
 		const filteredItems = await Zotero.DB.queryAsync(queryString);
 		return filteredItems;
 	},
@@ -211,15 +232,15 @@ Zotero.ExpressionsOfConcern = {
 	 * @returns {Promise<void>}
 	 */
 	lookupExpressionsOfConcernForNewItem: async function () {
-		const queryString = `select max(items.itemID), itemDataValues.value
-                             from items
-                                      left join itemTypeFields on items.itemTypeID = itemTypeFields.itemTypeID
-                                      left join itemData on itemData.fieldID = itemTypeFields.fieldID
-                                      left join itemAttachments on itemAttachments.parentItemID = items.itemID and
+		const queryString = `SELECT max(items.itemID), itemDataValues.value
+                             FROM items
+                                      LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
+                                      LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
+                                      LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
                                                                    itemAttachments.itemID = itemData.itemID
-                                      left join itemDataValues on itemDataValues.valueID = itemData.valueID
-                             where itemTypeFields.fieldID = 1
-                               and itemAttachments.contentType <> 'appliation/pdf'`;
+                                      LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
+                             WHERE itemTypeFields.fieldID = 1
+                               AND itemAttachments.contentType <> 'appliation/pdf'`;
 		const filteredItem = await Zotero.DB.queryAsync(queryString);
 		return filteredItem;
 	},
@@ -230,8 +251,9 @@ Zotero.ExpressionsOfConcern = {
 	 * @returns {Promise<void>}
 	 */
 	scrapeExpressionsOfConcern: async function (items) {
+		let promises = [];
 		for (let item of items) {
-			await Zotero.HTTP.request("GET", item.value, {})
+			promises.push(Zotero.HTTP.request("GET", item.value, {})
 				.then((response) => {
 					let htmlDoc = response.responseXML;
 
@@ -245,36 +267,40 @@ Zotero.ExpressionsOfConcern = {
 					let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
 
 					let headers = Zotero.Utilities.xpath(errorList, 'h3');
+					let links = [];
+					let notices = [];
 					if (this.containsExpressionsOfConcern(headers)) {
 						for (let ul of errorList) {
 							let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
-							let links = [];
-							let shortText;
-							for (let link of linkList) {
-								let ref = link.getAttribute('ref');
+
+							for (let i = 0; i < linkList.length; i++) {
+								let ref = linkList[i].getAttribute('ref');
 								if (ref.includes('type=expressionofconcernin')) {
-									shortText = link.innerHTML;
-									let expressionOfConcernLink = link.href;
+									notices.push(linkList[i].innerHTML);
+									let expressionOfConcernLink = linkList[i].href;
 
 									if (!expressionOfConcernLink.includes('http')) {
-										expressionOfConcernLink = this._getHostname(item.value) + link.href;
+										expressionOfConcernLink = this._getHostname(item.value) + linkList[i].href;
 									}
 
 									links.push(expressionOfConcernLink);
 								}
 							}
-							let data = {
-								links: links,
-								shortText: shortText
-							};
-
-							this._addEntry(item.itemID, data);
 						}
+
+						let data = {
+							links: links,
+							notices: notices
+						};
+						this._addEntry(item.itemID, JSON.stringify(data));
 					}
 				}).catch((error) => {
 					Zotero.debug("Error while retrieving document: " + error + "\n\n");
-				});
+				})
+			);
 		}
+
+		Zotero.Promise.all(promises);
 	},
 
 	/**
