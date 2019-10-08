@@ -1,25 +1,25 @@
 /*
     ***** BEGIN LICENSE BLOCK *****
-    
+
     Copyright © 2019 Corporation for Digital Scholarship
                      Vienna, Virginia, USA
                      http://digitalscholar.org/
-    
+
     This file is part of Zotero.
-    
+
     Zotero is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    
+
     Zotero is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
-    
+
     You should have received a copy of the GNU Affero General Public License
     along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     ***** END LICENSE BLOCK *****
 */
 
@@ -27,54 +27,53 @@ Zotero.Retractions = {
 	TYPE_DOI: 'd',
 	TYPE_PMID: 'p',
 	TYPE_NAMES: ['DOI', 'PMID'],
-	
+
 	FLAG_NORMAL: 0,
 	FLAG_HIDDEN: 1,
 	FLAG_NO_CITATION_WARNING: 2,
-	
+
 	_prefObserverRegistered: false,
 	_initialized: false,
 	_version: 1,
-	
+
 	init: async function () {
 		this._resetState();
-		
+
 		if (!this._prefObserverRegistered) {
 			Zotero.Prefs.registerObserver('retractions.enabled', this._handlePrefChange.bind(this));
 			this._prefObserverRegistered = true;
 		}
-		
+
 		if (!Zotero.Prefs.get('retractions.enabled')) {
 			return;
 		}
-		
+
 		// TEMP: Until we can figure out why some schema updates aren't going through despite the
 		// version number being incremented, create table here if it's missing
 		await Zotero.DB.queryAsync("CREATE TABLE IF NOT EXISTS retractedItems (\n	itemID INTEGER PRIMARY KEY,\n	data TEXT,\n	FOREIGN KEY (itemID) REFERENCES items(itemID) ON DELETE CASCADE\n);");
 		try {
 			await Zotero.DB.queryAsync("ALTER TABLE retractedItems ADD COLUMN flag INT DEFAULT 0");
+		} catch (e) {
 		}
-		catch (e) {}
-		
+
 		// Load mappings of keys (DOI hashes and PMIDs) to items and vice versa and register for
 		// item changes so they can be kept up to date in notify().
 		await this._cacheKeyMappings();
 		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'retractions', 20);
-		
+
 		// Load in the cached prefix list that we check new items against
 		try {
 			await this._loadCacheFile();
-		}
-		catch (e) {
+		} catch (e) {
 			Zotero.logError("Error loading retractions cache file");
 			Zotero.logError(e);
 		}
-		
+
 		// Load existing retracted items
 		var rows = await Zotero.DB.queryAsync(
 			"SELECT libraryID, itemID, DI.itemID IS NOT NULL AS deleted, RI.flag FROM items "
-				+ "JOIN retractedItems RI USING (itemID) "
-				+ "LEFT JOIN deletedItems DI USING (itemID)"
+			+ "JOIN retractedItems RI USING (itemID) "
+			+ "LEFT JOIN deletedItems DI USING (itemID)"
 		);
 		for (let row of rows) {
 			this._retractedItems.set(row.itemID, row.flag);
@@ -85,15 +84,15 @@ Zotero.Retractions = {
 				this._retractedItemsByLibrary[row.libraryID].add(row.itemID);
 			}
 		}
-		
+
 		this._initialized = true;
-		
+
 		// If no cache file or it was created with a different version, download list at startup
 		if (!this._cacheETag || this._cacheVersion != this._version) {
 			Zotero.Schema.schemaUpdatePromise.then(() => this.updateFromServer());
 		}
 	},
-	
+
 	_resetState: function () {
 		this._initialized = false;
 		this._keyItems = {};
@@ -109,7 +108,7 @@ Zotero.Retractions = {
 		this._cachePMIDPrefixLength = null;
 		this._cachePrefixList = new Set();
 	},
-	
+
 	/**
 	 * If item was retracted and the retraction hasn't been hidden
 	 *
@@ -120,7 +119,7 @@ Zotero.Retractions = {
 		var flag = this._retractedItems.get(item.id);
 		return flag !== undefined && flag !== this.FLAG_HIDDEN;
 	},
-	
+
 	/**
 	 * If item was retracted and hasn't been marked to not show citation warnings
 	 *
@@ -130,7 +129,7 @@ Zotero.Retractions = {
 	shouldShowCitationWarning: function (item) {
 		return this._retractedItems.get(item.id) === this.FLAG_NORMAL;
 	},
-	
+
 	/**
 	 * Don't show any future retraction warnings for this item
 	 *
@@ -140,7 +139,7 @@ Zotero.Retractions = {
 	hideRetraction: async function (item) {
 		return this._updateItemFlag(item, this.FLAG_HIDDEN);
 	},
-	
+
 	/**
 	 * Don't show future citation warnings for this item
 	 *
@@ -150,7 +149,7 @@ Zotero.Retractions = {
 	disableCitationWarningsForItem: async function (item) {
 		return this._updateItemFlag(item, this.FLAG_NO_CITATION_WARNING);
 	},
-	
+
 	_updateItemFlag: async function (item, flag) {
 		this._retractedItems.set(item.id, flag);
 		await Zotero.DB.queryAsync(
@@ -159,7 +158,7 @@ Zotero.Retractions = {
 		);
 		await Zotero.Notifier.trigger('modify', 'item', [item.id]);
 	},
-	
+
 	getRetractionsFromJSON: Zotero.serial(async function (jsonItems) {
 		// TODO: Save as retractions-cache with etag and cache and use for other checks
 		var keyCache = this._keyCache;
@@ -169,12 +168,12 @@ Zotero.Retractions = {
 				[this.TYPE_PMID]: new Map(),
 			};
 		}
-		
+
 		var matchingIndexes = new Set();
 		var valuesToCheck = [];
 		for (let i = 0; i < jsonItems.length; i++) {
 			let json = jsonItems[i];
-			
+
 			// DOI
 			let doi;
 			if (json.DOI) {
@@ -197,7 +196,7 @@ Zotero.Retractions = {
 					index: i
 				});
 			}
-			
+
 			// PMID
 			if (json.extra) {
 				let pmid = this._extractPMID(json.extra);
@@ -210,11 +209,11 @@ Zotero.Retractions = {
 				}
 			}
 		}
-		
+
 		// Check all possible values
 		var keyIndexes = new Map();
 		var prefixStringsToCheck = [];
-		for (let { type, value, index } of valuesToCheck) {
+		for (let {type, value, index} of valuesToCheck) {
 			// See if we've already cached a result for this key
 			let key = this._valueToKey(type, value);
 			let cachedResult = keyCache[type].get(key);
@@ -224,12 +223,12 @@ Zotero.Retractions = {
 				}
 				continue;
 			}
-			
+
 			// Otherwise, check prefix against list
 			let prefixStr = this._getPrefixString(type, value, this._getCachedPrefixLength(type));
 			if (this._cachePrefixList.has(prefixStr)) {
 				prefixStringsToCheck.push(prefixStr);
-				
+
 				// Map key to array index
 				let indexes = keyIndexes.get(key);
 				if (!indexes) {
@@ -238,11 +237,11 @@ Zotero.Retractions = {
 				}
 				indexes.add(index);
 			}
-			
+
 			// Set all keys to false in the cache. Any that match will be set to true below.
 			keyCache[type].set(key, false);
 		}
-		
+
 		if (prefixStringsToCheck.length) {
 			let possibleMatches = await this._downloadPossibleMatches(prefixStringsToCheck);
 			for (let row of possibleMatches) {
@@ -253,7 +252,7 @@ Zotero.Retractions = {
 							matchingIndexes.add(index);
 						}
 					}
-					
+
 					keyCache[this.TYPE_DOI].set(row.doi, true);
 				}
 				if (row.pmid) {
@@ -263,22 +262,22 @@ Zotero.Retractions = {
 							matchingIndexes.add(index);
 						}
 					}
-					
+
 					keyCache[this.TYPE_PMID].set(row.pmid, true);
 				}
 			}
 		}
-		
+
 		// TODO: Save key cache to disk with current ETag
-		
+
 		return [...matchingIndexes];
 	}),
-	
+
 	libraryHasRetractedItems: function (libraryID) {
 		return !!(this._retractedItemsByLibrary[libraryID]
 			&& this._retractedItemsByLibrary[libraryID].size);
 	},
-	
+
 	_addLibraryRetractedItem: async function (libraryID, itemID) {
 		if (!this._retractedItemsByLibrary[libraryID]) {
 			this._retractedItemsByLibrary[libraryID] = new Set();
@@ -286,7 +285,7 @@ Zotero.Retractions = {
 		this._retractedItemsByLibrary[libraryID].add(itemID);
 		await this._updateLibraryRetractions(libraryID);
 	},
-	
+
 	_removeLibraryRetractedItem: async function (libraryID, itemID) {
 		// Might not exist if retracted item was in trash at startup or when detected
 		if (!this._retractedItemsByLibrary[libraryID]) {
@@ -295,17 +294,17 @@ Zotero.Retractions = {
 		this._retractedItemsByLibrary[libraryID].delete(itemID);
 		await this._updateLibraryRetractions(libraryID);
 	},
-	
+
 	_updateLibraryRetractions: async function (libraryID) {
 		var previous = this._librariesWithRetractions.has(libraryID);
 		var current = this.libraryHasRetractedItems(libraryID);
-		
+
 		// Update Retracted Items virtual collection
 		if (Zotero.Libraries.exists(libraryID)
-				// Changed
-				&& (previous != current
-					// Explicitly hidden
-					|| (current && !Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(libraryID, 'retracted')))) {
+			// Changed
+			&& (previous != current
+				// Explicitly hidden
+				|| (current && !Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(libraryID, 'retracted')))) {
 			let promises = [];
 			for (let zp of Zotero.getZoteroPanes()) {
 				promises.push(zp.setVirtual(libraryID, 'retracted', current));
@@ -313,20 +312,19 @@ Zotero.Retractions = {
 			}
 			await Zotero.Promise.all(promises);
 		}
-		
+
 		if (current) {
 			this._librariesWithRetractions.add(libraryID);
-		}
-		else {
+		} else {
 			this._librariesWithRetractions.delete(libraryID);
 		}
 	},
-	
+
 	_resetLibraryRetractions: function (libraryID) {
 		delete this._retractedItemsByLibrary[libraryID];
 		this._updateLibraryRetractions(libraryID);
 	},
-	
+
 	/**
 	 * Return retraction data for an item
 	 *
@@ -342,28 +340,25 @@ Zotero.Retractions = {
 		}
 		try {
 			data = JSON.parse(data);
-		}
-		catch (e) {
+		} catch (e) {
 			Zotero.logError(e);
 			return false;
 		}
-		
+
 		try {
 			if (data.date) {
 				data.date = Zotero.Date.sqlToDate(data.date);
-			}
-			else {
+			} else {
 				data.date = null;
 			}
-		}
-		catch (e) {
+		} catch (e) {
 			Zotero.logError("Error parsing retraction date: " + data.date);
 			data.date = null;
 		}
-		
+
 		return data;
 	},
-	
+
 	getReasonDescription: function (reason) {
 		var description = this._reasonDescriptions[reason];
 		if (!description) {
@@ -372,13 +367,13 @@ Zotero.Retractions = {
 		}
 		return description;
 	},
-	
+
 	notify: async function (action, type, ids, extraData) {
 		// The observer is removed when disabled but something might already be in progress
 		if (!this._initialized) {
 			return;
 		}
-		
+
 		// Clean up cache on group deletion
 		if (type == 'group') {
 			if (action == 'delete') {
@@ -388,14 +383,13 @@ Zotero.Retractions = {
 			}
 			return;
 		}
-		
+
 		// Items
 		if (action == 'add') {
 			for (let id of ids) {
 				this._updateItem(Zotero.Items.get(id));
 			}
-		}
-		else if (action == 'modify') {
+		} else if (action == 'modify') {
 			for (let id of ids) {
 				let item = Zotero.Items.get(id);
 				for (let type of this.TYPE_NAMES) {
@@ -427,30 +421,28 @@ Zotero.Retractions = {
 				if (flag !== undefined) {
 					if (item.deleted || flag == this.FLAG_HIDDEN) {
 						await this._removeLibraryRetractedItem(item.libraryID, item.id);
-					}
-					else {
+					} else {
 						await this._addLibraryRetractedItem(item.libraryID, item.id);
 					}
 				}
 			}
-		}
-		else if (action == 'delete') {
+		} else if (action == 'delete') {
 			for (let id of ids) {
 				await this._removeEntry(id, extraData[id].libraryID);
 			}
 		}
 	},
-	
+
 	/**
 	 * Check for possible matches for items in the queue (debounced)
 	 */
 	checkQueuedItems: Zotero.Utilities.debounce(async function () {
 		return this._checkQueuedItemsInternal();
 	}, 1000),
-	
+
 	_checkQueuedItemsInternal: async function () {
 		Zotero.debug("Checking updated items for retractions");
-		
+
 		// If no possible matches, clear retraction flag on any items that changed
 		if (!this._queuedPrefixStrings.size) {
 			for (let item of this._queuedItems) {
@@ -459,7 +451,7 @@ Zotero.Retractions = {
 			this._queuedItems.clear();
 			return;
 		}
-		
+
 		var items = [...this._queuedItems];
 		var prefixStrings = [...this._queuedPrefixStrings];
 		this._queuedItems.clear();
@@ -468,8 +460,7 @@ Zotero.Retractions = {
 		try {
 			let possibleMatches = await this._downloadPossibleMatches(prefixStrings);
 			addedItems = await this._addPossibleMatches(possibleMatches);
-		}
-		catch (e) {
+		} catch (e) {
 			// Add back to queue on failure
 			for (let item of items) {
 				this._queuedItems.add(item);
@@ -479,7 +470,7 @@ Zotero.Retractions = {
 			}
 			throw e;
 		}
-		
+
 		// Remove retraction status for items that were checked but didn't match
 		for (let item of items) {
 			if (!addedItems.includes(item.id)) {
@@ -487,12 +478,12 @@ Zotero.Retractions = {
 			}
 		}
 	},
-	
+
 	updateFromServer: Zotero.serial(async function () {
 		if (!this._initialized) {
 			return;
 		}
-		
+
 		// Download list
 		var headers = {};
 		if (this._cacheETag) {
@@ -513,12 +504,12 @@ Zotero.Retractions = {
 		}
 		var etag = req.getResponseHeader('ETag');
 		var list = req.response.split('\n').filter(x => x);
-		
+
 		if (!list.length) {
 			Zotero.logError("Empty retraction list from server");
 			return;
 		}
-		
+
 		// Calculate prefix length automatically
 		var doiPrefixLength;
 		var pmidPrefixLength = 0;
@@ -528,12 +519,11 @@ Zotero.Retractions = {
 			let prefix = prefixStr.substr(1);
 			if (type == this.TYPE_DOI && !doiPrefixLength) {
 				doiPrefixLength = prefix.length;
-			}
-			else if (type == this.TYPE_PMID) {
+			} else if (type == this.TYPE_PMID) {
 				pmidPrefixLength = Math.max(pmidPrefixLength, prefix.length);
 			}
 		}
-		
+
 		// Get all keys and compute prefixes to check for possible matches
 		var prefixStrings = new Set([
 			...Array.from(this._keyItems[this.TYPE_DOI].keys())
@@ -554,22 +544,21 @@ Zotero.Retractions = {
 				prefixesToSend.add(prefixStr);
 			}
 		}
-		
+
 		if (prefixesToSend.size) {
 			// TODO: Diff list and remove existing retractions that are missing
-			
+
 			let possibleMatches = await this._downloadPossibleMatches([...prefixesToSend]);
 			await this._addPossibleMatches(possibleMatches, true);
-		}
-		else {
+		} else {
 			Zotero.debug("No possible retractions");
 			await this._addPossibleMatches([], true);
 		}
-		
+
 		await this._saveCacheFile(list, etag, doiPrefixLength, pmidPrefixLength);
 	}),
-	
-	
+
+
 	/**
 	 * @param {String[]} prefixStrings
 	 * @return {Object[]} - Results from API search
@@ -586,11 +575,11 @@ Zotero.Retractions = {
 		var results = req.response;
 		Zotero.debug(`Retrieved ${results.length} possible `
 			+ Zotero.Utilities.pluralize(results.length, ['match', 'matches']));
-		
+
 		results.push(...this._fixedResults);
 		return results;
 	},
-	
+
 	/**
 	 * @param {Object[]} possibleMatches - Results from API search
 	 * @param {Boolean} [removeExisting = false] - Remove retracted flag from all items that don't
@@ -628,7 +617,7 @@ Zotero.Retractions = {
 				}
 			}
 		}
-		
+
 		// Remove existing retracted items that no longer match
 		var removed = 0;
 		if (removeExisting) {
@@ -640,7 +629,7 @@ Zotero.Retractions = {
 				}
 			}
 		}
-		
+
 		var msg = `Found ${addedItemIDs.size} retracted `
 			+ Zotero.Utilities.pluralize(addedItemIDs.size, 'item');
 		if (removed) {
@@ -653,7 +642,7 @@ Zotero.Retractions = {
 		}
 		return addedItemIDs;
 	},
-	
+
 	_showAlert: async function (itemIDs) {
 		// Don't show banner for items in the trash
 		var items = await Zotero.Items.getAsync(itemIDs);
@@ -667,7 +656,7 @@ Zotero.Retractions = {
 			await zp.showRetractionBanner();
 		}
 	},
-	
+
 	_getItemDOI: function (item) {
 		var itemDOI = item.getField('DOI') || item.getExtraField('doi');
 		if (itemDOI) {
@@ -675,12 +664,12 @@ Zotero.Retractions = {
 		}
 		return itemDOI || null;
 	},
-	
+
 	_getItemPMID: function (item) {
 		// TEMP
 		return this._extractPMID(item.getField('extra')) || null;
 	},
-	
+
 	// TEMP
 	_extractPMID: function (str) {
 		if (!str) {
@@ -693,64 +682,64 @@ Zotero.Retractions = {
 				continue;
 			}
 			let [_, originalField, value] = parts;
-			
+
 			let field = originalField.trim().toLowerCase()
-				// Strip spaces
+			// Strip spaces
 				.replace(/\s+/g, '')
 				// Old citeproc.js cheater syntax
 				.replace(/{:([^:]+):([^}]+)}/);
 			value = value.trim();
-			
+
 			if (field == 'pmid' || field == 'pubmedid') {
 				return value;
 			}
 		}
 		return false;
 	},
-	
+
 	_valueToKey: function (type, value) {
 		if (type == this.TYPE_DOI) {
 			return Zotero.Utilities.Internal.sha1(value);
 		}
 		return value;
 	},
-	
+
 	_getPrefixString: function (type, value, length) {
 		switch (type) {
 			case this.TYPE_DOI: {
 				let hash = this._valueToKey(this.TYPE_DOI, value);
 				return this.TYPE_DOI + hash.substr(0, length);
 			}
-			
+
 			case this.TYPE_PMID: {
 				return this.TYPE_PMID + value.substr(0, length);
 			}
 		}
 		throw new Error("Unsupported type " + type);
 	},
-	
+
 	_getCachedPrefixLength: function (type) {
 		switch (type) {
 			case this.TYPE_DOI: {
 				return this._cacheDOIPrefixLength;
 			}
-			
+
 			case this.TYPE_PMID: {
 				return this._cachePMIDPrefixLength;
 			}
 		}
 		throw new Error("Unsupported type " + type);
 	},
-	
+
 	_cacheKeyMappings: async function () {
 		await this._cacheDOIMappings();
 		await this._cachePMIDMappings();
 	},
-	
+
 	_cacheDOIMappings: async function () {
 		this._keyItems[this.TYPE_DOI] = new Map();
 		this._itemKeys[this.TYPE_DOI] = new Map();
-		
+
 		var sql = "SELECT itemID AS id, value FROM itemData "
 			+ "JOIN itemDataValues USING (valueID) WHERE fieldID=?";
 		var rows = await Zotero.DB.queryAsync(sql, Zotero.ItemFields.getID('DOI'));
@@ -759,7 +748,7 @@ Zotero.Retractions = {
 			if (!value) continue;
 			this._addItemKeyMapping(this.TYPE_DOI, value, row.id);
 		}
-		
+
 		// Extract from Extract field
 		sql = "SELECT itemID AS id, value FROM itemData "
 			+ "JOIN itemDataValues USING (valueID) WHERE fieldID=?";
@@ -773,11 +762,11 @@ Zotero.Retractions = {
 			this._addItemKeyMapping(this.TYPE_DOI, value, row.id);
 		}
 	},
-	
+
 	_cachePMIDMappings: async function () {
 		this._keyItems[this.TYPE_PMID] = new Map();
 		this._itemKeys[this.TYPE_PMID] = new Map();
-		
+
 		var sql = "SELECT itemID AS id, value FROM itemData "
 			+ "JOIN itemDataValues USING (valueID) WHERE fieldID=?";
 		var rows = await Zotero.DB.queryAsync(sql, Zotero.ItemFields.getID('extra'));
@@ -793,7 +782,7 @@ Zotero.Retractions = {
 			this._addItemKeyMapping(this.TYPE_PMID, pmid, row.id);
 		}
 	},
-	
+
 	_addItemKeyMapping: function (type, value, itemID) {
 		var key = this._valueToKey(type, value);
 		// Map key to item id
@@ -803,11 +792,11 @@ Zotero.Retractions = {
 			this._keyItems[type].set(key, ids);
 		}
 		ids.add(itemID);
-		
+
 		// Map item id to key so we can clear on change
 		this._itemKeys[type].set(itemID, key);
 	},
-	
+
 	_deleteItemKeyMappings: function (itemID) {
 		for (let type of [this.TYPE_DOI, this.TYPE_PMID]) {
 			var key = this._itemKeys[type].get(itemID);
@@ -817,7 +806,7 @@ Zotero.Retractions = {
 			}
 		}
 	},
-	
+
 	/**
 	 * Add new key mappings for an item, check if it matches a cached prefix, and queue it for full
 	 * checking if so
@@ -845,17 +834,17 @@ Zotero.Retractions = {
 		}
 		this.checkQueuedItems();
 	},
-	
+
 	_addEntry: async function (itemID, data) {
 		var o = {};
 		if (data.retractionDOI) o.doi = data.retractionDOI;
 		if (data.retractionPMID) o.pmid = data.retractionPMID;
 		delete o.retractionDOI;
 		delete o.retractionPMID;
-		
+
 		var sql = "REPLACE INTO retractedItems (itemID, data) VALUES (?, ?)";
 		await Zotero.DB.queryAsync(sql, [itemID, JSON.stringify(o)]);
-		
+
 		var item = await Zotero.Items.getAsync(itemID);
 		var libraryID = item.libraryID;
 		// Check whether the retraction is already hidden by the user
@@ -870,25 +859,25 @@ Zotero.Retractions = {
 			this._retractedItemsByLibrary[libraryID].add(itemID);
 			await this._updateLibraryRetractions(libraryID);
 		}
-		
+
 		await Zotero.Notifier.trigger('refresh', 'item', [itemID]);
 	},
-	
+
 	_removeEntry: async function (itemID, libraryID) {
 		this._deleteItemKeyMappings(itemID);
-		
+
 		if (!this._retractedItems.has(itemID)) {
 			return;
 		}
-		
+
 		await Zotero.DB.queryAsync("DELETE FROM retractedItems WHERE itemID=?", itemID);
 		this._retractedItems.delete(itemID);
 		this._retractedItemsByLibrary[libraryID].delete(itemID);
 		await this._updateLibraryRetractions(libraryID);
-		
+
 		await Zotero.Notifier.trigger('refresh', 'item', [itemID]);
 	},
-	
+
 	_removeAllEntries: async function () {
 		var libraryIDs = await Zotero.DB.columnQueryAsync(
 			"SELECT libraryID FROM items WHERE itemID IN (SELECT itemID FROM retractedItems)"
@@ -905,7 +894,7 @@ Zotero.Retractions = {
 		}
 		await Zotero.Notifier.trigger('refresh', 'item', itemIDs);
 	},
-	
+
 	_loadCacheFile: async function () {
 		var cacheFile = OS.Path.join(Zotero.Profile.dir, 'retractions.json');
 		if (!await OS.File.exists(cacheFile)) {
@@ -916,7 +905,7 @@ Zotero.Retractions = {
 			this._processCacheData(data);
 		}
 	},
-	
+
 	_processCacheData: function (data) {
 		this._cacheVersion = data.version;
 		this._cacheETag = data.etag;
@@ -936,7 +925,7 @@ Zotero.Retractions = {
 			}
 		}
 	},
-	
+
 	/**
 	 * Cache prefix list in profile directory
 	 */
@@ -952,12 +941,11 @@ Zotero.Retractions = {
 		try {
 			await Zotero.File.putContentsAsync(cacheFile, JSON.stringify(cacheJSON));
 			this._processCacheData(cacheJSON);
-		}
-		catch (e) {
+		} catch (e) {
 			Zotero.logError("Error caching retractions data: " + e);
 		}
 	},
-	
+
 	_getURLPrefix: function () {
 		var url = (Zotero.Prefs.get("api.url") || ZOTERO_CONFIG.API_URL);
 		if (!url.endsWith('/')) {
@@ -966,7 +954,7 @@ Zotero.Retractions = {
 		url += 'retractions/';
 		return url;
 	},
-	
+
 	_handlePrefChange: async function () {
 		// Enable
 		if (Zotero.Prefs.get('retractions.enabled')) {
@@ -984,7 +972,7 @@ Zotero.Retractions = {
 			await OS.File.remove(cacheFile);
 		}
 	},
-	
+
 	// https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/
 	_reasonDescriptions: {
 		"Author Unresponsive": "Author(s) lack of communication after prior contact by Journal, Publisher or other original Authors",
@@ -1082,8 +1070,8 @@ Zotero.Retractions = {
 		"Upgrade/Update of Prior Notice": "Either a change to or affirmation of a prior notice",
 		Withdrawal: "The original article is removed from access on the Journal’s publishing platform."
 	},
-	
+
 	_fixedResults: [
-		{ date: "1977-04-15", pmid: 993, retractionPMID: 195582, reasons: ["Results Not Reproducible"], urls: [] }
+		{date: "1977-04-15", pmid: 993, retractionPMID: 195582, reasons: ["Results Not Reproducible"], urls: []}
 	]
 };

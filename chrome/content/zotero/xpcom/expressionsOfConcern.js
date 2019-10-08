@@ -55,26 +55,25 @@ Zotero.ExpressionsOfConcern = {
 			Zotero.debug("Error while altering ExpressionsOfConcern table: " + error.toString());
 		}
 
-		// TODO: Load up all items and look for expressions of concern here
-		// call get all items
-		// look into the items for url fields
-		// look into the dom
-		// extract expressions of concerns
-		// cache them into a file ?
-
-		let expressionsOfConcern = await this._getEntries();
-
-		for (let expressionOfConcern of expressionsOfConcern) {
-			Zotero.debug('in init: ' + expressionOfConcern.itemID);
-			this._expressionsOfConcern.set(expressionOfConcern.itemID, expressionOfConcern.flag);
-		}
-
+		/**
+		 * TODO: Load up all items and look for expressions of concern here
+		 * 		- call get all items
+		 * 		- look into the items for url fields
+		 * 		- look into the dom
+		 * 		- extract expressions of concerns
+		 * 		- cache them into a file ?
+		 */
 		const items = await this.lookupExpressionsOfConcernForItems();
 
 		if (items) {
 			this.scrapeExpressionsOfConcern(items);
 		}
 
+		let expressionsOfConcern = await this._getEntries();
+
+		for (let expressionOfConcern of expressionsOfConcern) {
+			this._expressionsOfConcern.set(expressionOfConcern.itemID, expressionOfConcern.flag);
+		}
 
 		/**
 		 * Idea after everything basic functionality works:
@@ -128,7 +127,7 @@ Zotero.ExpressionsOfConcern = {
 	 * @privates
 	 */
 	_updateEntry: async function (itemID, newData) {
-		const currentExpressionOfConcern = await this.getEntryData(itemID);
+		const currentExpressionOfConcern = await this.getEntryData();
 		const queryString = "UPDATE expressionsOfConcern SET itemID=?, data=? WHERE itemID=? VALUES (?, ?, ?)";
 		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(newData), itemID]);
 	},
@@ -138,16 +137,15 @@ Zotero.ExpressionsOfConcern = {
 	 * @param item {Zotero.Item} primary key of the item for which its expression of concern should be retrieved
 	 * @returns {Promise<void>}
 	 */
-	getEntry: async function (item) {
-		const queryString = "SELECT * FROM expressionsOfConcern WHERE itemID=?";
-		const expressionOfConcern = await Zotero.DB.queryAsync(queryString, item.id);
+	getEntryData: async function (itemID) {
+		const queryString = "SELECT data FROM expressionsOfConcern WHERE itemID=?";
+		const expressionOfConcernData = await Zotero.DB.valueQueryAsync(queryString, itemID);
 
-		if (!expressionOfConcern) {
+		if (!expressionOfConcernData) {
 			return false;
 		}
-		expressionOfConcern.data = JSON.parse(expressionOfConcern.data);
 
-		return expressionOfConcern;
+		return JSON.parse(expressionOfConcernData);
 	},
 
 	_getEntries: async function () {
@@ -194,7 +192,7 @@ Zotero.ExpressionsOfConcern = {
 
 	/**
 	 *
-	 * @param item { Zotero.Item } Item which will be checked for expressions of concerns
+	 * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
 	 * @returns {boolean}
 	 */
 	hasExpressionsOfConcern: function (item) {

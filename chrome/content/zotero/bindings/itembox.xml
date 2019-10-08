@@ -2361,7 +2361,8 @@
             </method>
 
             <method name="updateExpressionsOfConcern">
-                <body><![CDATA[
+                <body>
+                    <![CDATA[
                         // Create function to cover expressions of concerns in the d
                         if (!this._updateExpressionsOfConcern) {
                             this._updateExpressionsOfConcern = Zotero.serial(async function (item) {
@@ -2375,15 +2376,18 @@
                                     return;
                                 }
 
-                                let expressionOfConcern = await Zotero.ExpressionsOfConcern.getEntry(item);
-                                let expressionOfConcernData = expressionOfConcern.data;
+                                let expressionOfConcernData = await Zotero.ExpressionsOfConcern.getEntryData(item.id);
 
                                 // make expression of concern div visible
                                 this._id('expression-of-concern-box').hidden = false;
+                                this._id('expression-of-concern-header-text').textContent
+                                        = Zotero.getString('expressionOfConcern.banner');
 
                                 if (expressionOfConcernData.notices.length) {
                                     for (let notice of expressionOfConcernData.notices) {
                                         let eocReasons = this._id('expression-of-concern-reasons');
+                                        // reset the content after each reselect
+                                        eocReasons.textContent = '';
                                         let dt = document.createElementNS(htmlNS, 'dt');
                                         let dd = document.createElementNS(htmlNS, 'dd');
 
@@ -2398,6 +2402,8 @@
 
                                 if (expressionOfConcernData.links.length) {
                                     let eocLinks = this._id('expression-of-concern-links');
+                                    // reset the content after each reselect
+                                    eocLinks.textContent = '';
 
                                     for (let link of expressionOfConcernData.links) {
                                         let a = document.createElementNS(htmlNS, 'a');
@@ -2415,7 +2421,8 @@
                         }
 
                         return this._updateExpressionsOfConcern(this.item);
-                    ]]></body>
+                    ]]>
+                </body>
             </method>
 
             <method name="updateRetracted">
