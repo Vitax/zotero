@@ -176,6 +176,9 @@ Zotero.Translate.ItemSaver.prototype = {
 
 				// Add to new item list
 				items.push(item);
+
+				let newItem = Zotero.ExpressionsOfConcern.lookupExpressionsOfConcernForNewItem();
+				await Zotero.scrapeExpressionsOfConcern([newItem]);
 				jsonByItem.set(item, jsonItem);
 			}
 		}.bind(this));

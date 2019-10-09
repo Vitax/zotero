@@ -116,7 +116,9 @@ Zotero.ExpressionsOfConcern = {
 	 */
 	_addEntry: async function (itemID, data) {
 		const queryString = "INSERT OR IGNORE INTO expressionsOfConcern (itemID, data) VALUES (?, ?)";
-		await Zotero.DB.queryAsync(queryString, [itemID, data]);
+		this._expressionsOfConcern.set(itemID, this.FLAG.NORMAL);
+
+		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
 	},
 
 	/**
@@ -290,7 +292,7 @@ Zotero.ExpressionsOfConcern = {
 							links: links,
 							notices: notices
 						};
-						this._addEntry(item.itemID, JSON.stringify(data));
+						this._addEntry(item.itemID, data);
 					}
 				}).catch((error) => {
 					Zotero.debug("Error while retrieving document: " + error + "\n\n");
