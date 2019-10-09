@@ -837,6 +837,8 @@ Zotero.Retractions = {
 
 	_addEntry: async function (itemID, data) {
 		var o = {};
+		Object.assign(o, data);
+		// Replace original ids with retractions ids
 		if (data.retractionDOI) o.doi = data.retractionDOI;
 		if (data.retractionPMID) o.pmid = data.retractionPMID;
 		delete o.retractionDOI;
