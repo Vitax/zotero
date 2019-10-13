@@ -2370,13 +2370,15 @@
 
                                 // check if an expression of concern exists for the given item
                                 let show = Zotero.ExpressionsOfConcern.hasExpressionsOfConcern(item);
+                                Zotero.debug('item has expression of concern !!!!!!!!!' + show);
                                 if (!show) {
                                     // make expression of concern div visible
                                     this._id('expression-of-concern-box').hidden = true;
                                     return;
                                 }
 
-                                let expressionOfConcernData = await Zotero.ExpressionsOfConcern.getEntryData(item.id);
+                                let expressionOfConcern = await Zotero.ExpressionsOfConcern.getEntry(item.id);
+                                let expressionOfConcernData = expressionOfConcern.data;
 
                                 // make expression of concern div visible
                                 this._id('expression-of-concern-box').hidden = false;
@@ -2391,8 +2393,7 @@
                                         let dt = document.createElementNS(htmlNS, 'dt');
                                         let dd = document.createElementNS(htmlNS, 'dd');
 
-                                        dt.textContent = "";
-                                        dd.textContent = notice;
+                                        dt.textContent = notice;
                                         eocReasons.appendChild(dt);
                                         eocReasons.appendChild(dd);
                                     }

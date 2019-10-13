@@ -87,11 +87,12 @@ Zotero.ExpressionsOfConcern = {
         this._initialized = true;
     },
 
-    _resetState: function () {
-        this._initialized = false;
-        this._expressionsOfConcern = new Map();
-        this._expressionsOfConcernByLibrary = {};
-    },
+	_resetState: function () {
+		this._initialized = false;
+		this._expressionsOfConcern = new Map();
+		this._expressionsOfConcernByLibrary = {};
+		this._librariesWithExpressionsOfConcern = new Set();
+	},
 
     _handlePrefChange: async function () {
         if (Zotero.Prefs.get('expressionsOfConcern.enabled')) {
@@ -121,34 +122,38 @@ Zotero.ExpressionsOfConcern = {
         await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
     },
 
-    /**
-     *
-     * @param itemID {number} primary key of the item who's expression of concern should get updated
-     * @param newData {string[]} new content of the expression of concern
-     * @returns {Promise<void>}
-     * @privates
-     */
-    _updateEntry: async function (itemID, newData) {
-        const currentExpressionOfConcern = await this.getEntryData();
-        const queryString = "UPDATE expressionsOfConcern SET itemID=?, data=? WHERE itemID=? VALUES (?, ?, ?)";
-        await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(newData), itemID]);
-    },
+	/**
+	 *
+	 * @param itemID {number} primary key of the item who's expression of concern should get updated
+	 * @param newData {string[]} new content of the expression of concern
+	 * @returns {Promise<void>}
+	 * @privates
+	 */
+	_updateEntry: async function (itemID, newData) {
+		const currentExpressionOfConcern = await this.getEntry(itemID);
+		const queryString = "UPDATE expressionsOfConcern SET itemID=?, data=? WHERE itemID=? VALUES (?, ?, ?)";
+		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(newData), itemID]);
+	},
 
-    /**
-     *
-     * @param item {Zotero.Item} primary key of the item for which its expression of concern should be retrieved
-     * @returns {Promise<void>}
-     */
-    getEntryData: async function (itemID) {
-        const queryString = "SELECT data FROM expressionsOfConcern WHERE itemID=?";
-        const expressionOfConcernData = await Zotero.DB.valueQueryAsync(queryString, itemID);
+	/**
+	 *
+	 * @param item {string} primary key of the item for which its expression of concern should be retrieved
+	 * @returns {Promise<Object>}
+	 */
+	getEntry: async function (itemID) {
+		const expressionOfConcernCopy = {};
+		const queryString = "SELECT itemID, data, flag FROM expressionsOfConcern WHERE itemID=?";
+		const expressionOfConcern = await Zotero.DB.rowQueryAsync(queryString, itemID);
 
-        if (!expressionOfConcernData) {
-            return false;
-        }
+		if (!expressionOfConcern) {
+			return false;
+		}
 
-        return JSON.parse(expressionOfConcernData);
-    },
+		Object.assign(expressionOfConcern, expressionOfConcernCopy);
+		expressionOfConcernCopy.data = JSON.parse(expressionOfConcern.data);
+
+		return expressionOfConcernCopy;
+	},
 
     _getEntries: async function () {
         const queryString = "SELECT * FROM expressionsOfConcern";
@@ -164,15 +169,20 @@ Zotero.ExpressionsOfConcern = {
         await Zotero.Notifier.trigger("trash", "expressionOfConcern", [itemID]);
     },
 
-    /**
-     * crops the hostname and removes the part which will most likely be the ref
-     * @param sourceLink {string} full hostname of the item
-     * @returns {string}
-     * @private
-     */
-    _getHostname: function (sourceLink) {
-        return 'https://www.ncbi.nlm.nih.gov';
-    },
+	/**
+	 * returns the PubMed url
+	 * @param refString {string}
+	 * @returns {string}
+	 * @private
+	 */
+	_getHostname: function (refString) {
+		let hostname = '';
+
+		if (refString.includes('pubmed')) {
+			hostname = "https://www.ncbi.nlm.nih.gov";
+		}
+		return hostname;
+	},
 
     _removeAllEntries: async function () {
         let queryString = "SELECT itemID FROM expressionsOfConcern";
@@ -241,18 +251,17 @@ Zotero.ExpressionsOfConcern = {
         return filteredItem;
     },
 
-    /**
-     *
-     * @param items {[{itemID: string, value: string}]}
-     * @returns {Promise<void>}
-     */
-    scrapeExpressionsOfConcern: async function (items) {
-        let promises = [];
-        for (let item of items) {
-            Zotero.debug('scraping item: ' + item.value);
-            promises.push(Zotero.HTTP.request("GET", item.value, {})
-                .then((response) => {
-                    let htmlDoc = response.responseXML;
+	/**
+	 *
+	 * @param items {[{itemID: string, value: string}]}
+	 * @returns {Promise<Object>}
+	 */
+	scrapeExpressionsOfConcern: async function (items) {
+		let promises = [];
+		for (let item of items) {
+			promises.push(Zotero.HTTP.request("GET", item.value, {})
+				.then((response) => {
+					let htmlDoc = response.responseXML;
 
                     if (!htmlDoc) {
                         var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
@@ -276,9 +285,9 @@ Zotero.ExpressionsOfConcern = {
                                     notices.push(linkList[i].innerHTML);
                                     let expressionOfConcernLink = linkList[i].href;
 
-                                    if (!expressionOfConcernLink.includes('http')) {
-                                        expressionOfConcernLink = this._getHostname(item.value) + linkList[i].href;
-                                    }
+									if (!expressionOfConcernLink.includes('http')) {
+										expressionOfConcernLink = this._getHostname(item.value) + linkList[i].href;
+									}
 
                                     links.push(expressionOfConcernLink);
                                 }
