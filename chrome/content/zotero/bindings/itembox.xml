@@ -2370,7 +2370,6 @@
 
                                 // check if an expression of concern exists for the given item
                                 let show = Zotero.ExpressionsOfConcern.hasExpressionsOfConcern(item);
-                                Zotero.debug('item has expression of concern !!!!!!!!!' + show);
                                 if (!show) {
                                     // make expression of concern div visible
                                     this._id('expression-of-concern-box').hidden = true;

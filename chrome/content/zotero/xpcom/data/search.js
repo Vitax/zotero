@@ -996,6 +996,10 @@ Zotero.Search.prototype._buildQuery = Zotero.Promise.coroutine(function* () {
 				case 'retracted':
 					var retracted = condition.operator == 'true';
 					continue;
+
+				case 'expressionsOfConcern':
+					var expressionOfConcern = condition.operator == 'true';
+					continue;
 				
 				case 'publications':
 					var publications = condition.operator == 'true';
@@ -1061,6 +1065,10 @@ Zotero.Search.prototype._buildQuery = Zotero.Promise.coroutine(function* () {
 	
 	if (retracted) {
 		sql += " AND (itemID IN (SELECT itemID FROM retractedItems WHERE flag=0))";
+	}
+
+	if(expressionOfConcern) {
+		sql += " AND (itemID in (select itemID from expressionsOfConcern WHERE flag=0))"
 	}
 	
 	if (publications) {

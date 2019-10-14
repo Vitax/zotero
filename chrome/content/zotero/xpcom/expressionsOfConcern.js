@@ -45,8 +45,8 @@ Zotero.ExpressionsOfConcern = {
             return;
         }
 
-        const queryString = "CREATE TABLE IF NOT EXISTS expressionsOfConcern (\nitemID INTEGER PRIMARY KEY, \ndata text, \nFOREIGN KEY (itemID) REFERENCES items(itemID)on delete cascade )";
-        await Zotero.DB.queryAsync(queryString);
+		const queryString = "CREATE TABLE IF NOT EXISTS expressionsOfConcern (itemID INTEGER PRIMARY KEY, data text, FOREIGN KEY (itemID) REFERENCES items(itemID)on delete cascade )";
+		await Zotero.DB.queryAsync(queryString);
 
         try {
             const queryString = "ALTER TABLE expressionsOfConcern ADD COLUMN flag INT DEFAULT 0";
@@ -55,25 +55,32 @@ Zotero.ExpressionsOfConcern = {
             Zotero.debug("Error while altering ExpressionsOfConcern table: " + error.toString());
         }
 
-        /**
-         * TODO: Load up all items and look for expressions of concern here
-         *        - call get all items
-         *        - look into the items for url fields
-         *        - look into the dom
-         *        - extract expressions of concerns
-         *        - cache them into a file ?
-         */
-        const items = await this.lookupExpressionsOfConcernForItems();
+		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionOfConcern', 20);
 
-        if (items) {
-            this.scrapeExpressionsOfConcern(items);
-        }
+		/**
+		 * TODO: Load up all items and look for expressions of concern here
+		 *        - call get all items
+		 *        - look into the items for url fields
+		 *        - look into the dom
+		 *        - extract expressions of concerns
+		 */
+		const items = await this.lookupExpressionsOfConcernItems();
+		if (items) {
+			this.scrapeExpressionsOfConcern(items);
+		}
 
         let expressionsOfConcern = await this._getEntries();
 
-        for (let expressionOfConcern of expressionsOfConcern) {
-            this._expressionsOfConcern.set(expressionOfConcern.itemID, expressionOfConcern.flag);
-        }
+		for (let row of expressionsOfConcern) {
+			this._expressionsOfConcern.set(row.itemID, row.flag);
+			if (!row.deleted && row.flag !== this.FLAG.HIDDEN) {
+				if (!this._expressionsOfConcernByLibrary[row.libraryID]) {
+					this._expressionsOfConcernByLibrary[row.libraryID] = new Set();
+				}
+
+				this._expressionsOfConcernByLibrary[row.libraryID].add(row.itemID);
+			}
+		}
 
         /**
          * Idea after everything basic functionality works:
@@ -108,16 +115,32 @@ Zotero.ExpressionsOfConcern = {
         }
     },
 
-    /**
-     *
-     * @param itemID {string | number} primary key of the item which has an expression of concern
-     * @param data {{shortTexts: *, links: *}} data which gets stored into the expression of concern
-     * @returns {Promise<void>}
-     * @private
-     */
-    _addEntry: async function (itemID, data) {
-        const queryString = "INSERT OR IGNORE INTO expressionsOfConcern (itemID, data) VALUES (?, ?)";
-        this._expressionsOfConcern.set(itemID, this.FLAG.NORMAL);
+	/**
+	 * returns the PubMed url
+	 * @param refString {string}
+	 * @returns {string}
+	 * @private
+	 */
+	_getHostname: function (refString) {
+		let hostname = '';
+
+		if (refString.includes('pubmed')) {
+			hostname = "https://www.ncbi.nlm.nih.gov";
+		}
+		return hostname;
+	},
+
+
+	/**
+	 *
+	 * @param itemID {string | number} primary key of the item which has an expression of concern
+	 * @param data {{shortTexts: *, links: *}} data which gets stored into the expression of concern
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	_addEntry: async function (itemID, data) {
+		const queryString = "INSERT OR IGNORE INTO expressionsOfConcern (itemID, data) VALUES (?, ?)";
+		this._expressionsOfConcern.set(itemID, this.FLAG.NORMAL);
 
         await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
     },
@@ -129,8 +152,8 @@ Zotero.ExpressionsOfConcern = {
 	 * @returns {Promise<void>}
 	 * @privates
 	 */
+
 	_updateEntry: async function (itemID, newData) {
-		const currentExpressionOfConcern = await this.getEntry(itemID);
 		const queryString = "UPDATE expressionsOfConcern SET itemID=?, data=? WHERE itemID=? VALUES (?, ?, ?)";
 		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(newData), itemID]);
 	},
@@ -155,38 +178,42 @@ Zotero.ExpressionsOfConcern = {
 		return expressionOfConcernCopy;
 	},
 
-    _getEntries: async function () {
-        const queryString = "SELECT * FROM expressionsOfConcern";
-        let expressionsOfConcern = await Zotero.DB.queryAsync(queryString);
+	_getEntries: async function () {
+		const queryString = `SELECT expressionsOfConcern.itemID, expressionsOfConcern.flag, items.libraryID, deletedItems.itemID IS NOT NULL as deleted
+							 FROM expressionsOfConcern
+							 JOIN items ON expressionsOfConcern.itemID = items.itemID
+							 LEFT JOIN deletedItems ON items.itemID = deletedItems.itemID`;
+		let expressionsOfConcern = await Zotero.DB.queryAsync(queryString);
 
         return expressionsOfConcern;
     },
 
-    _removeEntry: async function (itemID) {
-        const queryString = "DELETE FROM expressionsOfConcern WHERE itemID=?";
-        await Zotero.DB.queryAsync(queryString, itemID);
-
-        await Zotero.Notifier.trigger("trash", "expressionOfConcern", [itemID]);
-    },
-
 	/**
-	 * returns the PubMed url
-	 * @param refString {string}
-	 * @returns {string}
+	 *
+	 * @param itemID
+	 * @param libraryID
+	 * @returns {Promise<void>}
 	 * @private
 	 */
-	_getHostname: function (refString) {
-		let hostname = '';
+	_removeEntry: async function (itemID, libraryID) {
+		this._expressionsOfConcern.delete(itemID);
+		this._expressionsOfConcernByLibrary[libraryID].delete(itemID);
+		this._updateExpressionsOfConcernByLibrary(libraryID);
 
-		if (refString.includes('pubmed')) {
-			hostname = "https://www.ncbi.nlm.nih.gov";
-		}
-		return hostname;
+		const queryString = "DELETE FROM expressionsOfConcern WHERE itemID=?";
+		await Zotero.DB.queryAsync(queryString, itemID);
+
+		await Zotero.Notifier.trigger("trash", "expressionOfConcern", [itemID]);
 	},
 
-    _removeAllEntries: async function () {
-        let queryString = "SELECT itemID FROM expressionsOfConcern";
-        let itemIDs = await Zotero.DB.queryAsync(queryString);
+	/**
+	 *
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	_removeAllEntries: async function () {
+		let queryString = "SELECT itemID FROM expressionsOfConcern";
+		let itemIDs = await Zotero.DB.queryAsync(queryString);
 
         if (!itemIDs.length) {
             return;
@@ -198,13 +225,164 @@ Zotero.ExpressionsOfConcern = {
         await Zotero.Notifier.trigger("trash", "expressionOfConcern", itemIDs);
     },
 
-    /**
-     *
-     * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
-     * @returns {boolean}
-     */
-    hasExpressionsOfConcern: function (item) {
-        let expressionOfConcern = this._expressionsOfConcern.has(item.id);
+	_updateEntryFlag: async function (itemID, newFlag) {
+		this._expressionsOfConcern.set(itemID, newFlag);
+		const queryString = "UPDATE expressionsOfConcern SET flag=? WHERE itemID=?";
+		await Zotero.DB.queryAsync(queryString, [itemID, newFlag]);
+		await Zotero.Notifier.trigger('modify', 'item', [itemID]);
+	},
+
+	/**
+	 *
+	 * @param libraryID
+	 * @returns {Promise<boolean>}
+	 */
+	libraryHasExpressionsOfConcern: async function (libraryID) {
+		if (this._expressionsOfConcernByLibrary[libraryID] && this._expressionsOfConcernByLibrary[libraryID].size) {
+			return true;
+		}
+
+		return false;
+	},
+
+	/**
+	 *
+	 * @param itemID
+	 * @returns {Promise<void>}
+	 */
+	hideExpressionOfConcern: async function (itemID) {
+		this._updateEntryFlag(itemID, this.FLAG.HIDDEN);
+	},
+
+	/**
+	 *
+	 * @param itemID
+	 * @param libraryID
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	_addEntryToExpressionsOfConcernLibrary: async function (itemID, libraryID) {
+		if (!this._expressionsOfConcernByLibrary[libraryID]) {
+			this._expressionsOfConcernByLibrary[libraryID] = new Set();
+		}
+
+		this._expressionsOfConcernByLibrary[libraryID].add(itemID);
+		this._updateExpressionsOfConcernByLibrary(libraryID);
+	},
+
+	/**
+	 *
+	 * @param itemID
+	 * @param libraryID
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	_removeEntryFromExpressionsOfConcernLibrary: async function (itemID, libraryID) {
+		if (!this._expressionsOfConcernByLibrary[libraryID]) {
+			return;
+		}
+
+		this._expressionsOfConcernByLibrary[libraryID].delete(itemID);
+		this._updateExpressionsOfConcernByLibrary(libraryID);
+	},
+
+	/**
+	 *
+	 * @param libraryID
+	 * @private
+	 */
+	_resetExpressionsOfConcernLibrary: function (libraryID) {
+		delete this._librariesWithExpressionsOfConcern[libraryID];
+		this._updateExpressionsOfConcernByLibrary(libraryID);
+	},
+
+	_updateExpressionsOfConcernByLibrary: async function (libraryID) {
+		let previous = this._librariesWithExpressionsOfConcern.has(libraryID);
+		let current = this.libraryHasExpressionsOfConcern(libraryID);
+
+		if (Zotero.Libraries.exists(libraryID) && (previous !== current || Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(libraryID, "expressionsOfConcern"))) {
+			let promises = [];
+			for (let zoteroPane of Zotero.getZoteroPanes()) {
+				promises.push(zoteroPane.setVirtual(libraryID, "expressionsOfConcern", current));
+				zoteroPane.hideExpressionsOfConcernBanner();
+			}
+
+			await Zotero.Promise.all(promises);
+		}
+
+		if (current) {
+			this._librariesWithExpressionsOfConcern.add(libraryID);
+		} else {
+			this._librariesWithExpressionsOfConcern.delete(libraryID);
+		}
+	},
+
+	/**
+	 *
+	 * @param action
+	 * @param type
+	 * @param ids
+	 * @param extraData
+	 * @returns {Promise<void>}
+	 */
+	notify: async function (action, type, ids, extraData) {
+		if (!this._initialized) {
+			return;
+		}
+
+		if (type === "group") {
+			if (action === 'delete') {
+				for (let libraryID in ids) {
+					this._resetExpressionsOfConcernLibrary(libraryID);
+				}
+			}
+		}
+
+		if (action === "add") {
+			for (let itemID of ids) {
+				let item = await this.lookupExpressionsOfConcernItem(itemID);
+				if (!item) {
+					return;
+				}
+
+				this.scrapeExpressionsOfConcern([item]);
+			}
+		}
+
+		if (action === "modify") {
+			for (let itemID of ids) {
+				let item = Zotero.Items.get(itemID);
+				let expressionOfConcern = await this.lookupExpressionsOfConcernItem(itemID);
+				if (!expressionOfConcern) {
+					return;
+				}
+
+				this.scrapeExpressionsOfConcern([expressionOfConcern]);
+
+				let flag = this._expressionsOfConcern.get(itemID);
+
+				if (flag !== undefined && (flag === this.FLAG.HIDDEN && item.deleted)) {
+					this._removeEntryFromExpressionsOfConcernLibrary(itemID, item.libraryID);
+				} else {
+					this._addEntryToExpressionsOfConcernLibrary(itemID, item.libraryID);
+				}
+			}
+		}
+
+		if (action === "deleted") {
+			for (let itemID of ids) {
+				this._removeEntry(itemID, extraData[itemID].libraryID);
+			}
+		}
+	},
+
+	/**
+	 *
+	 * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
+	 * @returns {boolean}
+	 */
+	hasExpressionsOfConcern: function (item) {
+		let expressionOfConcern = this._expressionsOfConcern.has(item.id);
 
         if (!expressionOfConcern) {
             return false;
@@ -213,13 +391,13 @@ Zotero.ExpressionsOfConcern = {
         return true;
     },
 
-    /**
-     * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
-     * Query is not working
-     * @returns {Promise<void>}
-     */
-    lookupExpressionsOfConcernForItems: async function () {
-        const queryString = `SELECT items.itemID, itemDataValues.value
+	/**
+	 * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
+	 * Query is not working
+	 * @returns {Promise<void>}
+	 */
+	lookupExpressionsOfConcernItems: async function () {
+		const queryString = `SELECT items.itemID, itemDataValues.value
                              FROM items
                                       LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
                                       LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
@@ -232,13 +410,12 @@ Zotero.ExpressionsOfConcern = {
         return filteredItems;
     },
 
-    /**
-     * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
-     * Query is not working
-     * @returns {Promise<void>}
-     */
-    lookupExpressionsOfConcernForNewItem: async function () {
-        const queryString = `SELECT max(items.itemID), itemDataValues.value
+	/**
+	 * Returns the most recent item which has a url from the DB
+	 * @returns {Promise<{itemID: string, value: string}>}
+	 */
+	lookupExpressionsOfConcernItem: async function (itemID) {
+		const queryString = `SELECT items.itemID, itemDataValues.value
                              FROM items
                                       LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
                                       LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
@@ -246,10 +423,10 @@ Zotero.ExpressionsOfConcern = {
                                                                    itemAttachments.itemID = itemData.itemID
                                       LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
                              WHERE itemTypeFields.fieldID = 1
-                               AND itemAttachments.contentType <> 'application/pdf'`;
-        const filteredItem = await Zotero.DB.queryAsync(queryString);
-        return filteredItem;
-    },
+                               AND itemAttachments.contentType <> 'application/pdf'
+                               AND items.itemID = ?`;
+		return await Zotero.DB.rowQueryAsync(queryString, [itemID]);
+	},
 
 	/**
 	 *

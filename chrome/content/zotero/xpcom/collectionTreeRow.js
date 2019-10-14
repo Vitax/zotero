@@ -107,6 +107,10 @@ Zotero.CollectionTreeRow.prototype.isRetracted = function () {
 	return this.type == 'retracted';
 }
 
+Zotero.CollectionTreeRow.prototype.hasExpressionsOfConcern = function () {
+	return this.type == 'expressionsOfConcern';
+}
+
 Zotero.CollectionTreeRow.prototype.isTrash = function()
 {
 	return this.type == 'trash';

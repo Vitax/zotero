@@ -106,7 +106,15 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
+			{
+				name: 'expressionsOfConcern',
+				operators: {
+					true: true,
+					false: true
+				}
+			},
+
 			{
 				name: 'publications',
 				operators: {

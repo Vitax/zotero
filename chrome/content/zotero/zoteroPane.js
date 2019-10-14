@@ -1753,7 +1753,8 @@ var ZoteroPane = new function()
 		else if (collectionTreeRow.isSearch()
 				|| collectionTreeRow.isUnfiled()
 				|| collectionTreeRow.isRetracted()
-				|| collectionTreeRow.isDuplicates()) {
+				|| collectionTreeRow.isDuplicates()
+				|| collectionTreeRow.hasExpressionsOfConcern()) {
 			if (!force) {
 				return;
 			}
@@ -1830,6 +1831,10 @@ var ZoteroPane = new function()
 		// Remove virtual retracted collection
 		else if (collectionTreeRow.isRetracted()) {
 			this.setVirtual(collectionTreeRow.ref.libraryID, 'retracted', false);
+			return;
+		}
+		else if (collectionTreeRow.hasExpressionsOfConcern()) {
+			this.setVirtual(collectionTreeRow.ref.libraryID, 'expressionsOfConcern', false);
 			return;
 		}
 		
