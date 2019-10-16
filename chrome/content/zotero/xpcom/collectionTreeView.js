@@ -1071,6 +1071,9 @@ Zotero.CollectionTreeView.prototype.selectByID = Zotero.Promise.coroutine(functi
 		case 'R':
 			yield this.expandLibrary(id);
 			break;
+		case 'EOC':
+			yield this.expandLibrary(id);
+			break;
 
 		case 'T':
 			return yield this.selectTrash(id);

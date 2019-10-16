@@ -27,6 +27,7 @@ describe("Zotero.CollectionTreeView", function () {
 			assert.ok(cv.getRowIndexByID("D" + userLibraryID));
 			assert.ok(cv.getRowIndexByID("U" + userLibraryID));
 			assert.isFalse(cv.getRowIndexByID("R" + userLibraryID));
+			assert.isFalse(cv.getRowIndexByID("EOC" + userLibraryID));
 		});
 
 		it("shouldn't show virtual collections if hidden", function* () {
@@ -38,6 +39,7 @@ describe("Zotero.CollectionTreeView", function () {
 			assert.isFalse(cv.getRowIndexByID("D" + userLibraryID));
 			assert.isFalse(cv.getRowIndexByID("U" + userLibraryID));
 			assert.isFalse(cv.getRowIndexByID("R" + userLibraryID));
+			assert.isFalse(cv.getRowIndexByID("EOC" + userLibraryID));
 		});
 
 		it("should maintain open state of group", function* () {
