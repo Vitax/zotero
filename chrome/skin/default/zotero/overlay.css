@@ -449,6 +449,10 @@
 	list-style-image: url('chrome://zotero/skin/cross.png');
 }
 
+.zotero-menuitem-show-expressionOfConcern {
+	list-style-image: url('chrome://zotero/skin/circle.png');
+}
+
 .zotero-menuitem-sync {
 	list-style-image: url(chrome://zotero/skin/arrow_rotate_static.png);
 }
@@ -794,6 +798,7 @@
 	.zotero-menuitem-show-duplicates { list-style-image: url('chrome://zotero/skin/treesource-duplicates@2x.png'); }
 	.zotero-menuitem-show-unfiled { list-style-image: url('chrome://zotero/skin/treesource-unfiled@2x.png'); }
 	.zotero-menuitem-show-retracted  { list-style-image: url('chrome://zotero/skin/cross@2x.png'); }
+	.zotero-menuitem-show-expressionOfConcern { list-style-image: url('chrome://zotero/skin/circle@2x.png'); }
 	.zotero-menuitem-sync  { list-style-image: url(chrome://zotero/skin/arrow_rotate_static@2x.png); }
 	.zotero-menuitem-new-collection { list-style-image: url('chrome://zotero/skin/toolbar-collection-add@2x.png'); }
 	.zotero-menuitem-edit-collection { list-style-image: url('chrome://zotero/skin/toolbar-collection-edit@2x.png'); }
