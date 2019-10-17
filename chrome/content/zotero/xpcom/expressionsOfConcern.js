@@ -317,6 +317,21 @@ Zotero.ExpressionsOfConcern = {
 		}
 	},
 
+	_showAlert: async function (itemIDs) {
+		// Don't show banner for items in the trash
+		let items = await Zotero.Items.getAsync(itemIDs);
+		items = items.filter(item => !item.deleted);
+		if (!items.length) {
+			return;
+		}
+		Zotero.Prefs.set('epxressionsOfConcern.recentItems', JSON.stringify(items.map(item => item.id)));
+		let zoteroPane = Zotero.getActiveZoteroPane();
+		if (zoteroPane) {
+			await zoteroPane.showExpressionsOfConcernBanner();
+		}
+	},
+
+
 	/**
 	 *
 	 * @param action
@@ -339,6 +354,7 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		if (action === "add") {
+			this._showAlert(ids)
 			for (let itemID of ids) {
 				let item = await this.lookupExpressionsOfConcernItem(itemID);
 				if (!item) {
@@ -350,6 +366,7 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		if (action === "modify") {
+			this._showAlert(ids)
 			for (let itemID of ids) {
 				let item = Zotero.Items.get(itemID);
 				let expressionOfConcern = await this.lookupExpressionsOfConcernItem(itemID);
@@ -374,7 +391,8 @@ Zotero.ExpressionsOfConcern = {
 				this._removeEntry(itemID, extraData[itemID].libraryID);
 			}
 		}
-	},
+	}
+	,
 
 	/**
 	 *
@@ -426,7 +444,8 @@ Zotero.ExpressionsOfConcern = {
                                AND itemAttachments.contentType <> 'application/pdf'
                                AND items.itemID = ?`;
 		return await Zotero.DB.rowQueryAsync(queryString, [itemID]);
-	},
+	}
+	,
 
 	/**
 	 *

@@ -4848,19 +4848,53 @@ var ZoteroPane = new function () {
 
 	this.showExpressionsOfConcernBanner = async function (items) {
 		// get current items with expressions of conern when not shown previously
-		let itemsInPref;
+		let innerItems;
 
 		try {
-			itemsInPref = JSON.parse(Zotero.Prefs.get('expressionsOfConcern.recentItems'));
+			innerItems = JSON.parse(Zotero.Prefs.get('expressionsOfConcern.recentItems'));
 		} catch (error) {
 			Zotero.debug('Error while retrieving expressions of concern from prefs: ' + error);
+			Zotero.Prefs.clear('expressionsOfConcern.recentItems');
+			return;
 		}
 		// try parsing the pref first
+		if (!innerItems.length) {
+			return;
+		}
+
+		innerItems = await Zotero.Items.getAsync(items);
+		if (!innerItems.length) {
+			return;
+		}
+
+		document.getElementById('expressions-of-concern-items-container').removeAttribute('collapsed');
+		let message = document.getElementById('expressions-of-concern-items-message');
+		let link = document.getElementById('expressions-of-concern-items-link');
+		let close = document.getElementById('expressions-of-concern-items-close');
+
+		let suffix = items.length > 1 ? 'multiple' : 'single';
+		message.textContent = Zotero.getString('expressionsOfConcern.alert.' + suffix);
+
+		link.textContent = Zotero.getString('expressionsOfConcern.alert.view.' + suffix);
 		// then retrieve the data from Zotero.Items
+		link.onclick = async function () {
+			this.hideExpressionsOfConcernBanner();
+			if (innerItems.length === 1) {
+				await this.selectItem(innerItems[0].id);
+			} else {
+				let libraryID = this.getSelectedLibraryID();
+				await this.collectionsView.selectByID("EOC" + libraryID);
+			}
+		}.bind(this);
+
+		close.onclick = function () {
+			this.hideExpressionsOfConcernBanner();
+		}.bind(this);
 	};
 
 	this.hideExpressionsOfConcernBanner = function () {
-
+		document.getElementById('expressions-of-concern-items-container').setAttribute('collapsed', 'true');
+		Zotero.Prefs.clear('expressionsOfConcern.recentItems');
 	};
 
 	/**
