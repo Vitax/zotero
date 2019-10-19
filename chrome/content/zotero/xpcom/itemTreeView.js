@@ -1,25 +1,25 @@
 /*
     ***** BEGIN LICENSE BLOCK *****
-    
+
     Copyright © 2009 Center for History and New Media
                      George Mason University, Fairfax, Virginia, USA
                      http://zotero.org
-    
+
     This file is part of Zotero.
-    
+
     Zotero is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    
+
     Zotero is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
-    
+
     You should have received a copy of the GNU Affero General Public License
     along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     ***** END LICENSE BLOCK *****
 */
 
@@ -36,23 +36,23 @@
  */
 Zotero.ItemTreeView = function (collectionTreeRow) {
 	Zotero.LibraryTreeView.apply(this);
-	
+
 	this.wrappedJSObject = this;
 	this.rowCount = 0;
 	this.collectionTreeRow = collectionTreeRow;
 	collectionTreeRow.view.itemTreeView = this;
-	
+
 	this._skipKeypress = false;
-	
+
 	this._ownerDocument = null;
 	this._needsSort = false;
 	this._introText = null;
-	
+
 	this._cellTextCache = {};
 	this._itemImages = {};
-	
+
 	this._refreshPromise = Zotero.Promise.resolve();
-	
+
 	this._notifierObserverID = Zotero.Notifier.registerObserver(
 		this,
 		['item', 'collection-item', 'item-tag', 'share-items', 'bucket', 'feedItem', 'search'],
@@ -86,52 +86,52 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 			}
 			return;
 		}
-		
+
 		var start = Date.now();
-		
+
 		Zotero.debug("Setting tree for " + this.collectionTreeRow.id + " items view " + this.id);
-		
+
 		if (!treebox) {
 			Zotero.debug("Treebox not passed in setTree()", 2);
 			return;
 		}
 		this._treebox = treebox;
-		
+
 		if (!this._ownerDocument) {
 			try {
 				this._ownerDocument = treebox.treeBody.ownerDocument;
+			} catch (e) {
 			}
-			catch (e) {}
-			
+
 			if (!this._ownerDocument) {
 				Zotero.debug("No owner document in setTree()", 2);
 				return;
 			}
 		}
-		
+
 		this.setSortColumn();
-		
+
 		if (this.window.ZoteroPane) {
 			this.window.ZoteroPane.setItemsPaneMessage(Zotero.getString('pane.items.loading'));
 		}
-		
+
 		if (Zotero.locked) {
 			Zotero.debug("Zotero is locked -- not loading items tree", 2);
-			
+
 			if (this.window.ZoteroPane) {
 				this.window.ZoteroPane.clearItemsPaneMessage();
 			}
 			return;
 		}
-		
+
 		// Don't expand to show search matches in My Publications
 		var skipExpandMatchParents = this.collectionTreeRow.isPublications();
-		
+
 		await this.refresh(skipExpandMatchParents);
 		if (!this._treebox.treeBody) {
 			return;
 		}
-		
+
 		// Expand all parent items in the view, regardless of search matches. We do this here instead
 		// of refresh so that it doesn't get reverted after item changes.
 		if (this.expandAll) {
@@ -144,7 +144,7 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 			Zotero.debug(`Opened all parent items in ${new Date() - t} ms`);
 		}
 		this._refreshItemRowMap();
-		
+
 		// Add a keypress listener for expand/collapse
 		var tree = this._getTreeElement();
 		var self = this;
@@ -154,7 +154,7 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 				self._skipKeyPress = false;
 				return;
 			}
-			
+
 			// Handle arrow keys specially on multiple selection, since
 			// otherwise the tree just applies it to the last-selected row
 			if (event.keyCode == event.DOM_VK_RIGHT || event.keyCode == event.DOM_VK_LEFT) {
@@ -163,38 +163,37 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 						case event.DOM_VK_RIGHT:
 							self.expandSelectedRows();
 							break;
-							
+
 						case event.DOM_VK_LEFT:
 							self.collapseSelectedRows();
 							break;
 					}
-					
+
 					event.preventDefault();
 				}
 				return;
 			}
-			
+
 			var key = String.fromCharCode(event.which);
 			if (key == '+' && !(event.ctrlKey || event.altKey || event.metaKey)) {
 				self.expandAllRows();
 				event.preventDefault();
 				return;
-			}
-			else if (key == '-' && !(event.shiftKey || event.ctrlKey || event.altKey || event.metaKey)) {
+			} else if (key == '-' && !(event.shiftKey || event.ctrlKey || event.altKey || event.metaKey)) {
 				self.collapseAllRows();
 				event.preventDefault();
 				return;
 			}
-			
+
 			// Ignore other non-character keypresses
 			if (!event.charCode || event.shiftKey || event.ctrlKey ||
-					event.altKey || event.metaKey) {
+				event.altKey || event.metaKey) {
 				return;
 			}
-			
+
 			event.preventDefault();
 			event.stopPropagation();
-			
+
 			Zotero.spawn(function* () {
 				if (coloredTagsRE.test(key)) {
 					let libraryID = self.collectionTreeRow.ref.libraryID;
@@ -210,12 +209,12 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 					if (!colorData) {
 						return !Zotero.Tags.getColors(libraryID).size;
 					}
-					
+
 					var items = self.getSelectedItems();
 					yield Zotero.Tags.toggleItemsListTags(items, colorData.name);
 					return;
 				}
-				
+
 				// We have to disable key navigation on the tree in order to
 				// keep it from acting on the 1-9 keys used for colored tags.
 				// To allow navigation with other keys, we temporarily enable
@@ -236,25 +235,25 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 		// Store listener so we can call removeEventListener() in ItemTreeView.unregister()
 		this.listener = listener;
 		tree.addEventListener('keypress', listener);
-		
+
 		// This seems to be the only way to prevent Enter/Return
 		// from toggle row open/close. The event is handled by
 		// handleKeyPress() in zoteroPane.js.
-		tree._handleEnter = function () {};
-		
+		tree._handleEnter = function () {
+		};
+
 		this._updateIntroText();
-		
+
 		if (this.collectionTreeRow && this.collectionTreeRow.itemsToSelect) {
 			await this.selectItems(this.collectionTreeRow.itemsToSelect);
 			this.collectionTreeRow.itemsToSelect = null;
 		}
-		
+
 		Zotero.debug("Set tree for items view " + this.id + " in " + (Date.now() - start) + " ms");
-		
+
 		this._initialized = true;
 		await this.runListeners('load');
-	}
-	catch (e) {
+	} catch (e) {
 		Zotero.debug(e, 1);
 		Components.utils.reportError(e);
 		if (this.onError) {
@@ -265,10 +264,10 @@ Zotero.ItemTreeView.prototype.setTree = async function (treebox) {
 }
 
 
-Zotero.ItemTreeView.prototype.setSortColumn = function() {
+Zotero.ItemTreeView.prototype.setSortColumn = function () {
 	var dir, col, currentCol, currentDir;
-	
-	for (let i=0, len=this._treebox.columns.count; i<len; i++) {
+
+	for (let i = 0, len = this._treebox.columns.count; i < len; i++) {
 		let column = this._treebox.columns.getColumnAt(i);
 		if (column.element.getAttribute('sortActive')) {
 			currentCol = column;
@@ -278,19 +277,19 @@ Zotero.ItemTreeView.prototype.setSortColumn = function() {
 			break;
 		}
 	}
-	
+
 	let colID = Zotero.Prefs.get('itemTree.sortColumnID');
 	// Restore previous sort setting (feed -> non-feed)
-	if (! this.collectionTreeRow.isFeed() && colID) {
+	if (!this.collectionTreeRow.isFeed() && colID) {
 		col = this._treebox.columns.getNamedColumn(colID);
 		dir = Zotero.Prefs.get('itemTree.sortDirection');
 		Zotero.Prefs.clear('itemTree.sortColumnID');
 		Zotero.Prefs.clear('itemTree.sortDirection');
-	// No previous sort setting stored, so store it (non-feed -> feed)
+		// No previous sort setting stored, so store it (non-feed -> feed)
 	} else if (this.collectionTreeRow.isFeed() && !colID && currentCol) {
 		Zotero.Prefs.set('itemTree.sortColumnID', currentCol.id);
 		Zotero.Prefs.set('itemTree.sortDirection', currentDir);
-	// Retain current sort setting (non-feed -> non-feed)
+		// Retain current sort setting (non-feed -> non-feed)
 	} else {
 		col = currentCol;
 		dir = currentDir;
@@ -308,22 +307,22 @@ Zotero.ItemTreeView.prototype.setSortColumn = function() {
  */
 Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(function* (skipExpandMatchParents) {
 	Zotero.debug('Refreshing items list for ' + this.id);
-	
+
 	// DEBUG: necessary?
 	try {
 		this._treebox.columns.count
 	}
-	// If treebox isn't ready, skip refresh
+		// If treebox isn't ready, skip refresh
 	catch (e) {
 		return false;
 	}
-	
+
 	var resolve, reject;
 	this._refreshPromise = new Zotero.Promise(function () {
 		resolve = arguments[0];
 		reject = arguments[1];
 	});
-	
+
 	try {
 		Zotero.CollectionTreeCache.clear();
 		// Get the full set of items we want to show
@@ -342,20 +341,20 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 				: newSearchItems.filter(item => !!item.parentItemID).map(item => item.parentItemID)
 		);
 		newSearchItems = new Set(newSearchItems);
-		
+
 		if (!this.selection.selectEventsSuppressed) {
 			var unsuppress = this.selection.selectEventsSuppressed = true;
 			this._treebox.beginUpdateBatch();
 		}
 		var savedSelection = this.getSelectedItems(true);
-		
+
 		var oldCount = this.rowCount;
 		var newCellTextCache = {};
 		var newSearchMode = this.collectionTreeRow.isSearchMode();
 		var newRows = [];
 		var allItemIDs = new Set();
 		var addedItemIDs = new Set();
-		
+
 		// Copy old rows to new array, omitting top-level items not in the new set and their children
 		//
 		// This doesn't add new child items to open parents or remove child items that no longer exist,
@@ -370,8 +369,7 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 				if (this.regularOnly || !isSearchParent) {
 					row.isOpen = false;
 					skipChildren = true;
-				}
-				else {
+				} else {
 					skipChildren = false;
 				}
 				// Skip items that don't match the search and don't have children that do
@@ -386,11 +384,11 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 			newRows.push(row);
 			allItemIDs.add(row.ref.id);
 		}
-		
+
 		// Add new items
 		for (let i = 0; i < itemsToAdd.length; i++) {
 			let item = itemsToAdd[i];
-			
+
 			// If child item matches search and parent hasn't yet been added, add parent
 			let parentItemID = item.parentItemID;
 			if (parentItemID) {
@@ -403,14 +401,14 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 			else if (allItemIDs.has(item.id)) {
 				continue;
 			}
-			
+
 			// Add new top-level items
 			let row = new Zotero.ItemTreeRow(item, 0, false);
 			newRows.push(row);
 			allItemIDs.add(item.id);
 			addedItemIDs.add(item.id);
 		}
-		
+
 		this._rows = newRows;
 		this.rowCount = this._rows.length;
 		this._refreshItemRowMap();
@@ -420,12 +418,12 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 		// re-sort all items that didn't match the search), so as a further optimization we could keep
 		// a sorted list of items for a given column configuration and restore items from that.
 		this.sort([...addedItemIDs]);
-		
+
 		var diff = this.rowCount - oldCount;
 		if (diff != 0) {
 			this._treebox.rowCountChanged(0, diff);
 		}
-		
+
 		// Toggle all open containers closed and open to refresh child items
 		//
 		// This could be avoided by making sure that items in notify() that aren't present are always
@@ -438,13 +436,13 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 			}
 		}
 		Zotero.debug(`Refreshed open parents in ${new Date() - t} ms`);
-		
+
 		this._refreshItemRowMap();
-		
+
 		this._searchMode = newSearchMode;
 		this._searchItemIDs = newSearchItemIDs; // items matching the search
 		this._cellTextCache = {};
-		
+
 		this.rememberSelection(savedSelection);
 		if (!skipExpandMatchParents) {
 			this.expandMatchParents(newSearchParentIDs);
@@ -453,19 +451,18 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 			this._treebox.endUpdateBatch();
 			this.selection.selectEventsSuppressed = false;
 		}
-		
+
 		// Clear My Publications intro text on a refresh with items
 		if (this.collectionTreeRow.isPublications() && this.rowCount) {
 			this.window.ZoteroPane.clearItemsPaneMessage();
 		}
-		
+
 		yield this.runListeners('refresh');
-		
+
 		setTimeout(function () {
 			resolve();
 		});
-	}
-	catch (e) {
+	} catch (e) {
 		setTimeout(function () {
 			reject(e);
 		});
@@ -477,27 +474,26 @@ Zotero.ItemTreeView.prototype.refresh = Zotero.serial(Zotero.Promise.coroutine(f
 /*
  *  Called by Zotero.Notifier on any changes to items in the data layer
  */
-Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (action, type, ids, extraData)
-{
+Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (action, type, ids, extraData) {
 	Zotero.debug("Yielding for refresh promise"); // TEMP
 	yield this._refreshPromise;
-	
+
 	if (!this._treebox || !this._treebox.treeBody) {
 		Zotero.debug("Treebox didn't exist in itemTreeView.notify()");
 		return;
 	}
-	
+
 	if (!this._rowMap) {
 		Zotero.debug("Item row map didn't exist in itemTreeView.notify()");
 		return;
 	}
-	
+
 	if (type == 'search' && action == 'modify') {
 		// TODO: Only refresh on condition change (not currently available in extraData)
 		yield this.refresh();
 		return;
 	}
-	
+
 	// Clear item type icon and tag colors when a tag is added to or removed from an item
 	if (type == 'item-tag') {
 		// TODO: Only update if colored tag changed?
@@ -506,32 +502,32 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 		}.bind(this));
 		return;
 	}
-	
+
 	var collectionTreeRow = this.collectionTreeRow;
 
 	if (collectionTreeRow.isFeed() && action == 'modify') {
-		for (let i=0; i<ids.length; i++) {
+		for (let i = 0; i < ids.length; i++) {
 			this._treebox.invalidateRow(this._rowMap[ids[i]]);
 		}
 	}
-	
+
 	var madeChanges = false;
 	var refreshed = false;
 	var sort = false;
-	
+
 	var savedSelection = this.getSelectedItems(true);
 	var previousFirstSelectedRow = this._rowMap[
 		// 'collection-item' ids are in the form <collectionID>-<itemID>
 		// 'item' events are just integers
 		type == 'collection-item' ? ids[0].split('-')[1] : ids[0]
-	];
-	
+		];
+
 	// If there's not at least one new item to be selected, get a scroll position to restore later
 	var scrollPosition = false;
 	if (action != 'add' || ids.every(id => extraData[id] && extraData[id].skipSelect)) {
 		scrollPosition = this._saveScrollPosition();
 	}
-	
+
 	// Redraw the tree (for tag color and progress changes)
 	if (action == 'redraw') {
 		// Redraw specific rows
@@ -547,8 +543,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 					}
 					this._treebox.invalidateCell(this._rowMap[id], col);
 				}
-			}
-			else {
+			} else {
 				for (let id of ids) {
 					delete this._itemImages[id];
 					this._treebox.invalidateRow(this._rowMap[id]);
@@ -562,15 +557,14 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 		}
 		return;
 	}
-	
+
 	if (action == 'refresh') {
 		if (type == 'share-items') {
 			if (collectionTreeRow.isShare()) {
 				yield this.refresh();
 				refreshed = true;
 			}
-		}
-		else if (type == 'bucket') {
+		} else if (type == 'bucket') {
 			if (collectionTreeRow.isBucket()) {
 				yield this.refresh();
 				refreshed = true;
@@ -583,11 +577,10 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 			delete this._cellTextCache[row];
 			delete this._itemImages[id];
 			this._treebox.invalidateRow(row);
-			
+
 			this.selection.clearSelection();
 			this.rememberSelection(savedSelection);
-		}
-		else {
+		} else {
 			for (let id of ids) {
 				let row = this._rowMap[id];
 				if (row === undefined) continue;
@@ -596,7 +589,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 				this._treebox.invalidateRow(row);
 			}
 		}
-		
+
 		// For a refresh on an item in the trash, check if the item still belongs
 		if (type == 'item' && collectionTreeRow.isTrash()) {
 			let rows = [];
@@ -610,27 +603,27 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 			}
 			this._removeRows(rows);
 		}
-		
+
 		return;
 	}
-	
+
 	if (collectionTreeRow.isShare()) {
 		return;
 	}
-	
+
 	// See if we're in the active window
 	var zp = Zotero.getActiveZoteroPane();
 	var activeWindow = zp && zp.itemsView == this;
-	
+
 	var quickSearch = this._ownerDocument.getElementById('zotero-tb-search');
 	var hasQuickSearch = quickSearch && quickSearch.value != '';
-	
+
 	// 'collection-item' ids are in the form collectionID-itemID
 	if (type == 'collection-item') {
 		if (!collectionTreeRow.isCollection()) {
 			return;
 		}
-		
+
 		var splitIDs = [];
 		for (let id of ids) {
 			var split = id.split('-');
@@ -641,25 +634,25 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 			splitIDs.push(split[1]);
 		}
 		ids = splitIDs;
-		
+
 		// Select the last item even if there are no changes (e.g. if the tag
 		// selector is open and already refreshed the pane)
 		/*if (splitIDs.length > 0 && (action == 'add' || action == 'modify')) {
 			var selectItem = splitIDs[splitIDs.length - 1];
 		}*/
 	}
-	
+
 	this.selection.selectEventsSuppressed = true;
 	this._treebox.beginUpdateBatch();
-	
+
 	if ((action == 'remove' && !collectionTreeRow.isLibrary(true))
-			|| action == 'delete' || action == 'trash'
-			|| (action == 'removeDuplicatesMaster' && collectionTreeRow.isDuplicates())) {
+		|| action == 'delete' || action == 'trash'
+		|| (action == 'removeDuplicatesMaster' && collectionTreeRow.isDuplicates())) {
 		// Since a remove involves shifting of rows, we have to do it in order,
 		// so sort the ids by row
 		var rows = [];
 		let push = action == 'delete' || action == 'trash' || action == 'removeDuplicatesMaster';
-		for (var i=0, len=ids.length; i<len; i++) {
+		for (var i = 0, len = ids.length; i < len; i++) {
 			if (!push) {
 				push = !collectionTreeRow.ref.hasItem(ids[i]);
 			}
@@ -672,7 +665,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 					continue;
 				}
 				rows.push(row);
-				
+
 				// Remove child items of removed parents
 				if (this.isContainer(row) && this.isContainerOpen(row)) {
 					while (++row < this.rowCount && this.getLevel(row) > 0) {
@@ -681,27 +674,25 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 				}
 			}
 		}
-		
+
 		if (rows.length > 0) {
 			this._removeRows(rows);
 			madeChanges = true;
 		}
-	}
-	else if (type == 'item' && action == 'modify')
-	{
+	} else if (type == 'item' && action == 'modify') {
 		// Clear row caches
 		var items = Zotero.Items.get(ids);
-		for (let i=0; i<items.length; i++) {
+		for (let i = 0; i < items.length; i++) {
 			let id = items[i].id;
 			delete this._itemImages[id];
 			delete this._cellTextCache[id];
 		}
-		
+
 		// If saved search, publications, or trash, just re-run search
 		if (collectionTreeRow.isSearch()
-				|| collectionTreeRow.isPublications()
-				|| collectionTreeRow.isTrash()
-				|| hasQuickSearch) {
+			|| collectionTreeRow.isPublications()
+			|| collectionTreeRow.isTrash()
+			|| hasQuickSearch) {
 			let skipExpandMatchParents = collectionTreeRow.isPublications();
 			yield this.refresh(skipExpandMatchParents);
 			refreshed = true;
@@ -711,31 +702,30 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 			if (!collectionTreeRow.isTrash()) {
 				sort = true;
 			}
-		}
-		else if (collectionTreeRow.isFeed()) {
+		} else if (collectionTreeRow.isFeed()) {
 			this.window.ZoteroPane.updateReadLabel();
 		}
 		// If not a search, process modifications manually
 		else {
 			var items = Zotero.Items.get(ids);
-			
+
 			for (let i = 0; i < items.length; i++) {
 				let item = items[i];
 				let id = item.id;
-				
+
 				let row = this._rowMap[id];
-				
+
 				// Deleted items get a modify that we have to ignore when
 				// not viewing the trash
 				if (item.deleted) {
 					continue;
 				}
-				
+
 				// Item already exists in this view
 				if (row !== undefined) {
 					let parentItemID = this.getRow(row).ref.parentItemID;
 					let parentIndex = this.getParentIndex(row);
-					
+
 					// Top-level item
 					if (this.isContainer(row)) {
 						// If Unfiled Items and itm was added to a collection, remove from view
@@ -754,10 +744,10 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 					// If moved from under another item to top level, remove old row and add new one
 					else if (parentIndex != -1 && !parentItemID) {
 						this._removeRow(row);
-						
+
 						let beforeRow = this.rowCount;
 						this._addRow(new Zotero.ItemTreeRow(item, 0, false), beforeRow);
-						
+
 						sort = id;
 					}
 					// If item was moved from one parent to another, remove from old parent
@@ -769,7 +759,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 					else {
 						sort = id;
 					}
-					
+
 					madeChanges = true;
 				}
 				// Otherwise, for a top-level item in a library root or a collection
@@ -791,28 +781,26 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 					}
 				}
 			}
-			
+
 			if (sort && ids.length != 1) {
 				sort = true;
 			}
 		}
-	}
-	else if(type == 'item' && action == 'add')
-	{
+	} else if (type == 'item' && action == 'add') {
 		let items = Zotero.Items.get(ids);
-		
+
 		// In some modes, just re-run search
 		if (collectionTreeRow.isSearch()
-				|| collectionTreeRow.isPublications()
-				|| collectionTreeRow.isTrash()
-				|| collectionTreeRow.isUnfiled()
-				|| hasQuickSearch) {
+			|| collectionTreeRow.isPublications()
+			|| collectionTreeRow.isTrash()
+			|| collectionTreeRow.isUnfiled()
+			|| hasQuickSearch) {
 			if (hasQuickSearch) {
 				// For item adds, clear the quick search, unless all the new items have
 				// skipSelect or are child items
 				if (activeWindow && type == 'item') {
 					let clear = false;
-					for (let i=0; i<items.length; i++) {
+					for (let i = 0; i < items.length; i++) {
 						if (!extraData[items[i].id].skipSelect && items[i].isTopLevelItem()) {
 							clear = true;
 							break;
@@ -831,12 +819,12 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 		}
 		// Otherwise process new items manually
 		else {
-			for (let i=0; i<items.length; i++) {
+			for (let i = 0; i < items.length; i++) {
 				let item = items[i];
 				// if the item belongs in this collection
 				if (((collectionTreeRow.isLibrary(true)
-						&& collectionTreeRow.ref.libraryID == item.libraryID)
-						|| (collectionTreeRow.isCollection() && item.inCollection(collectionTreeRow.ref.id)))
+					&& collectionTreeRow.ref.libraryID == item.libraryID)
+					|| (collectionTreeRow.isCollection() && item.inCollection(collectionTreeRow.ref.id)))
 					// if we haven't already added it to our hash map
 					&& this._rowMap[item.id] == null
 					// Regular item or standalone note/attachment
@@ -851,15 +839,14 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 			}
 		}
 	}
-	
+
 	var reselect = false;
-	if(madeChanges)
-	{
+	if (madeChanges) {
 		// If we made individual changes, we have to clear the cache
 		if (!refreshed) {
 			Zotero.CollectionTreeCache.clear();
 		}
-		
+
 		var singleSelect = false;
 		// If adding a single top-level item and this is the active window, select it
 		if (action == 'add' && activeWindow) {
@@ -876,7 +863,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 				if (items) {
 					let itemTypeAttachment = Zotero.ItemTypes.getID('attachment');
 					let itemTypeNote = Zotero.ItemTypes.getID('note');
-					
+
 					var found = false;
 					for (let item of items) {
 						// Check for attachment and note types, since it's quicker
@@ -884,7 +871,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 						if (item.itemTypeID == itemTypeAttachment || item.itemTypeID == itemTypeNote) {
 							continue;
 						}
-						
+
 						// We already found a top-level item, so cancel the
 						// single selection
 						if (found) {
@@ -897,14 +884,13 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 				}
 			}
 		}
-		
+
 		if (sort) {
 			this.sort(typeof sort == 'number' ? [sort] : false);
-		}
-		else {
+		} else {
 			this._refreshItemRowMap();
 		}
-		
+
 		if (singleSelect) {
 			if (!extraData[singleSelect] || !extraData[singleSelect].skipSelect) {
 				// Reset to Info tab
@@ -915,12 +901,11 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 		}
 		// If single item is selected and was modified
 		else if (action == 'modify' && ids.length == 1 &&
-				savedSelection.length == 1 && savedSelection[0] == ids[0]) {
+			savedSelection.length == 1 && savedSelection[0] == ids[0]) {
 			if (activeWindow) {
 				yield this.selectItem(ids[0]);
 				reselect = true;
-			}
-			else {
+			} else {
 				this.rememberSelection(savedSelection);
 				reselect = true;
 			}
@@ -928,7 +913,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 		// On removal of a selected row, select item at previous position
 		else if (savedSelection.length) {
 			if ((action == 'remove' || action == 'trash' || action == 'delete')
-					&& savedSelection.some(id => this.getRowIndexByID(id) === false)) {
+				&& savedSelection.some(id => this.getRowIndexByID(id) === false)) {
 				// In duplicates view, select the next set on delete
 				if (collectionTreeRow.isDuplicates()) {
 					if (this._rows[previousFirstSelectedRow]) {
@@ -938,8 +923,7 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 						this.selectItems(setItemIDs);
 						reselect = true;
 					}
-				}
-				else {
+				} else {
 					// If this was a child item and the next item at this
 					// position is a top-level item, move selection one row
 					// up to select a sibling or parent
@@ -947,12 +931,12 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 						let previousItem = Zotero.Items.get(ids[0]);
 						if (previousItem && !previousItem.isTopLevelItem()) {
 							if (this._rows[previousFirstSelectedRow]
-									&& this.getLevel(previousFirstSelectedRow) == 0) {
+								&& this.getLevel(previousFirstSelectedRow) == 0) {
 								previousFirstSelectedRow--;
 							}
 						}
 					}
-					
+
 					if (previousFirstSelectedRow !== undefined && this._rows[previousFirstSelectedRow]) {
 						this.selection.select(previousFirstSelectedRow);
 						reselect = true;
@@ -963,13 +947,12 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 						reselect = true;
 					}
 				}
-			}
-			else {
+			} else {
 				this.rememberSelection(savedSelection);
 				reselect = true;
 			}
 		}
-		
+
 		this._rememberScrollPosition(scrollPosition);
 	}
 	// For special case in which an item needs to be selected without changes
@@ -978,11 +961,11 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 	/*else if (selectItem) {
 		yield this.selectItem(selectItem);
 	}*/
-	
+
 	this._updateIntroText();
-	
+
 	this._treebox.endUpdateBatch();
-	
+
 	// If we made changes to the selection (including reselecting the same item, which will register as
 	// a selection when selectEventsSuppressed is set to false), wait for a select event on the tree
 	// view (e.g., as triggered by itemsView.runListeners('select') in ZoteroPane::itemSelected())
@@ -999,21 +982,20 @@ Zotero.ItemTreeView.prototype.notify = Zotero.Promise.coroutine(function* (actio
 		this.selection.selectEventsSuppressed = false;
 		Zotero.debug("Yielding for select promise"); // TEMP
 		return selectPromise;
-	}
-	else {
+	} else {
 		this.selection.selectEventsSuppressed = false;
 	}
 });
 
 
-Zotero.ItemTreeView.prototype.unregister = async function() {
+Zotero.ItemTreeView.prototype.unregister = async function () {
 	Zotero.Notifier.unregisterObserver(this._notifierObserverID);
 	Zotero.Prefs.unregisterObserver(this._prefObserverID);
-	
+
 	if (this.collectionTreeRow.onUnload) {
 		await this.collectionTreeRow.onUnload();
 	}
-	
+
 	if (this.listener) {
 		if (!this._treebox.treeBody) {
 			Zotero.debug("No more tree body in Zotero.ItemTreeView::unregister()");
@@ -1032,51 +1014,45 @@ Zotero.ItemTreeView.prototype.unregister = async function() {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-Zotero.ItemTreeView.prototype.getCellText = function (row, column)
-{
+Zotero.ItemTreeView.prototype.getCellText = function (row, column) {
 	var obj = this.getRow(row);
 	var itemID = obj.id;
-	
+
 	// If value is available, retrieve synchronously
 	if (this._cellTextCache[itemID] && this._cellTextCache[itemID][column.id] !== undefined) {
 		return this._cellTextCache[itemID][column.id];
 	}
-	
+
 	if (!this._cellTextCache[itemID]) {
 		this._cellTextCache[itemID] = {}
 	}
-	
+
 	var val;
-	
+
 	// Image only
 	if (column.id === "zotero-items-column-hasAttachment") {
 		return;
-	}
-	else if(column.id == "zotero-items-column-itemType")
-	{
+	} else if (column.id == "zotero-items-column-itemType") {
 		val = Zotero.ItemTypes.getLocalizedString(obj.ref.itemTypeID);
 	}
 	// Year column is just date field truncated
 	else if (column.id == "zotero-items-column-year") {
 		val = obj.getField('date', true).substr(0, 4)
-	}
-	else if (column.id === "zotero-items-column-numNotes") {
+	} else if (column.id === "zotero-items-column-numNotes") {
 		val = obj.numNotes();
 		if (!val) {
 			val = '';
 		}
-	}
-	else {
+	} else {
 		var col = column.id.substring(20);
-		
+
 		if (col == 'title') {
 			val = obj.ref.getDisplayTitle();
-		}
-		else {
+		} else {
 			val = obj.getField(col);
 		}
 	}
-	
+
 	switch (column.id) {
 		// Format dates as short dates in proper locale order and locale time
 		// (e.g. "4/4/07 14:27:23")
@@ -1094,24 +1070,20 @@ Zotero.ItemTreeView.prototype.getCellText = function (row, column)
 					if (Zotero.Date.isSQLDate(val)) {
 						date = Zotero.Date.sqlToDate(val);
 						val = date.toLocaleDateString();
-					}
-					else {
+					} else {
 						val = date.toLocaleString();
 					}
-				}
-				else {
+				} else {
 					val = '';
 				}
 			}
 	}
-	
+
 	return this._cellTextCache[itemID][column.id] = val;
 }
 
-Zotero.ItemTreeView.prototype.getImageSrc = function(row, col)
-{
-	if(col.id == 'zotero-items-column-title')
-	{
+Zotero.ItemTreeView.prototype.getImageSrc = function (row, col) {
+	if (col.id == 'zotero-items-column-title') {
 		// Get item type icon and tag swatches
 		var item = this.getRow(row).ref;
 		var itemID = item.id;
@@ -1119,26 +1091,25 @@ Zotero.ItemTreeView.prototype.getImageSrc = function(row, col)
 			return this._itemImages[itemID];
 		}
 		item.getImageSrcWithTags()
-		.then(function (uriWithTags) {
-			this._itemImages[itemID] = uriWithTags;
-			this._treebox.invalidateCell(row, col);
-		}.bind(this));
+			.then(function (uriWithTags) {
+				this._itemImages[itemID] = uriWithTags;
+				this._treebox.invalidateCell(row, col);
+			}.bind(this));
 		return item.getImageSrc();
-	}
-	else if (col.id == 'zotero-items-column-hasAttachment') {
+	} else if (col.id == 'zotero-items-column-hasAttachment') {
 		if (this.collectionTreeRow.isTrash()) return false;
-		
+
 		var treerow = this.getRow(row);
 		var item = treerow.ref;
-		
+
 		if ((!this.isContainer(row) || !this.isContainerOpen(row))
-				&& Zotero.Sync.Storage.getItemDownloadImageNumber(item)) {
+			&& Zotero.Sync.Storage.getItemDownloadImageNumber(item)) {
 			return '';
 		}
-		
+
 		var itemID = item.id;
 		let suffix = Zotero.hiDPISuffix;
-		
+
 		if (treerow.level === 0) {
 			if (item.isRegularItem()) {
 				let state = item.getBestAttachmentStateCached();
@@ -1146,24 +1117,24 @@ Zotero.ItemTreeView.prototype.getImageSrc = function(row, col)
 					switch (state) {
 						case 1:
 							return `chrome://zotero/skin/bullet_blue${suffix}.png`;
-						
+
 						case -1:
 							return `chrome://zotero/skin/bullet_blue_empty${suffix}.png`;
-						
+
 						default:
 							return "";
 					}
 				}
-				
+
 				item.getBestAttachmentState()
 				// Refresh cell when promise is fulfilled
-				.then(function (state) {
-					this._treebox.invalidateCell(row, col);
-				}.bind(this))
-				.done();
+					.then(function (state) {
+						this._treebox.invalidateCell(row, col);
+					}.bind(this))
+					.done();
 			}
 		}
-		
+
 		if (item.isFileAttachment()) {
 			let exists = item.fileExistsCached();
 			if (exists !== null) {
@@ -1171,29 +1142,27 @@ Zotero.ItemTreeView.prototype.getImageSrc = function(row, col)
 					? `chrome://zotero/skin/bullet_blue${suffix}.png`
 					: `chrome://zotero/skin/bullet_blue_empty${suffix}.png`;
 			}
-			
+
 			item.fileExists()
 			// Refresh cell when promise is fulfilled
-			.then(function (exists) {
-				this._treebox.invalidateCell(row, col);
-			}.bind(this));
+				.then(function (exists) {
+					this._treebox.invalidateCell(row, col);
+				}.bind(this));
 		}
 	}
-	
+
 	return "";
 }
 
-Zotero.ItemTreeView.prototype.isContainer = function(row)
-{
+Zotero.ItemTreeView.prototype.isContainer = function (row) {
 	return this.getRow(row).ref.isRegularItem();
 }
 
-Zotero.ItemTreeView.prototype.isContainerEmpty = function(row)
-{
+Zotero.ItemTreeView.prototype.isContainerEmpty = function (row) {
 	if (this.regularOnly) {
 		return true;
 	}
-	
+
 	var item = this.getRow(row).ref;
 	if (!item.isRegularItem()) {
 		return false;
@@ -1203,28 +1172,24 @@ Zotero.ItemTreeView.prototype.isContainerEmpty = function(row)
 }
 
 // Gets the index of the row's container, or -1 if none (top-level)
-Zotero.ItemTreeView.prototype.getParentIndex = function(row)
-{
-	if (row==-1)
-	{
+Zotero.ItemTreeView.prototype.getParentIndex = function (row) {
+	if (row == -1) {
 		return -1;
 	}
 	var thisLevel = this.getLevel(row);
-	if(thisLevel == 0) return -1;
-	for(var i = row - 1; i >= 0; i--)
-		if(this.getLevel(i) < thisLevel)
+	if (thisLevel == 0) return -1;
+	for (var i = row - 1; i >= 0; i--)
+		if (this.getLevel(i) < thisLevel)
 			return i;
 	return -1;
 }
 
-Zotero.ItemTreeView.prototype.hasNextSibling = function(row,afterIndex)
-{
+Zotero.ItemTreeView.prototype.hasNextSibling = function (row, afterIndex) {
 	var thisLevel = this.getLevel(row);
-	for(var i = afterIndex + 1; i < this.rowCount; i++)
-	{	
+	for (var i = afterIndex + 1; i < this.rowCount; i++) {
 		var nextLevel = this.getLevel(i);
-		if(nextLevel == thisLevel) return true;
-		else if(nextLevel < thisLevel) return false;
+		if (nextLevel == thisLevel) return true;
+		else if (nextLevel < thisLevel) return false;
 	}
 }
 
@@ -1235,38 +1200,36 @@ Zotero.ItemTreeView.prototype.toggleOpenState = function (row, skipRowMapRefresh
 	if (!this.isContainer(row)) {
 		return;
 	}
-	
+
 	if (this.isContainerOpen(row)) {
 		return this._closeContainer(row, skipRowMapRefresh);
 	}
-	
+
 	var count = 0;
 	var level = this.getLevel(row);
-	
+
 	//
 	// Open
 	//
 	var item = this.getRow(row).ref;
-	
+
 	//Get children
 	var includeTrashed = this.collectionTreeRow.isTrash();
 	var attachments = item.getAttachments(includeTrashed);
 	var notes = item.getNotes(includeTrashed);
-	
+
 	var newRows;
 	if (attachments.length && notes.length) {
 		newRows = notes.concat(attachments);
-	}
-	else if (attachments.length) {
+	} else if (attachments.length) {
 		newRows = attachments;
-	}
-	else if (notes.length) {
+	} else if (notes.length) {
 		newRows = notes;
 	}
-	
+
 	if (newRows) {
 		newRows = Zotero.Items.get(newRows);
-		
+
 		for (let i = 0; i < newRows.length; i++) {
 			count++;
 			this._addRow(
@@ -1276,15 +1239,15 @@ Zotero.ItemTreeView.prototype.toggleOpenState = function (row, skipRowMapRefresh
 			);
 		}
 	}
-	
+
 	this._rows[row].isOpen = true;
-	
+
 	if (count == 0) {
 		return;
 	}
-	
+
 	this._treebox.invalidateRow(row);
-	
+
 	if (!skipRowMapRefresh) {
 		Zotero.debug('Refreshing item row map');
 		this._refreshItemRowMap();
@@ -1298,10 +1261,10 @@ Zotero.ItemTreeView.prototype._closeContainer = function (row, skipRowMapRefresh
 	// place when the spring-load closes
 	if (!this.isContainer(row)) return;
 	if (!this.isContainerOpen(row)) return;
-	
+
 	var count = 0;
 	var level = this.getLevel(row);
-	
+
 	// Remove child rows
 	while ((row + 1 < this._rows.length) && (this.getLevel(row + 1) > level)) {
 		// Skip the map update here and just refresh the whole map below,
@@ -1309,15 +1272,15 @@ Zotero.ItemTreeView.prototype._closeContainer = function (row, skipRowMapRefresh
 		this._removeRow(row + 1, true);
 		count--;
 	}
-	
+
 	this._rows[row].isOpen = false;
-	
+
 	if (count == 0) {
 		return;
 	}
-	
+
 	this._treebox.invalidateRow(row);
-	
+
 	if (!skipRowMapRefresh) {
 		Zotero.debug('Refreshing item row map');
 		this._refreshItemRowMap();
@@ -1325,8 +1288,7 @@ Zotero.ItemTreeView.prototype._closeContainer = function (row, skipRowMapRefresh
 }
 
 
-Zotero.ItemTreeView.prototype.isSorted = function()
-{
+Zotero.ItemTreeView.prototype.isSorted = function () {
 	// We sort by the first column if none selected, so return true
 	return true;
 }
@@ -1349,27 +1311,22 @@ Zotero.ItemTreeView.prototype.cycleHeader = Zotero.Promise.coroutine(function* (
 			this._cachedBestAttachmentStates = true;
 		}
 	}
-	for(var i=0, len=this._treebox.columns.count; i<len; i++)
-	{
+	for (var i = 0, len = this._treebox.columns.count; i < len; i++) {
 		col = this._treebox.columns.getColumnAt(i);
-		if(column != col)
-		{
+		if (column != col) {
 			col.element.removeAttribute('sortActive');
 			col.element.removeAttribute('sortDirection');
-		}
-		else
-		{
+		} else {
 			// If not yet selected, start with ascending
 			if (!col.element.getAttribute('sortActive')) {
 				col.element.setAttribute('sortDirection', 'ascending');
-			}
-			else {
+			} else {
 				col.element.setAttribute('sortDirection', col.element.getAttribute('sortDirection') == 'descending' ? 'ascending' : 'descending');
 			}
 			col.element.setAttribute('sortActive', true);
 		}
 	}
-	
+
 	this.selection.selectEventsSuppressed = true;
 	var savedSelection = this.getSelectedItems(true);
 	if (savedSelection.length == 1) {
@@ -1395,14 +1352,14 @@ Zotero.ItemTreeView.prototype.cycleHeader = Zotero.Promise.coroutine(function* (
  */
 Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 	var t = new Date;
-	
+
 	// If Zotero pane is hidden, mark tree for sorting later in setTree()
 	if (!this._treebox.columns) {
 		this._needsSort = true;
 		return;
 	}
 	this._needsSort = false;
-	
+
 	// For child items, just close and reopen parents
 	if (itemIDs) {
 		let parentItemIDs = new Set();
@@ -1417,17 +1374,17 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 			}
 			parentItemIDs.add(parentItemID);
 		}
-		
+
 		let parentRows = [...parentItemIDs].map(itemID => this._rowMap[itemID]);
 		parentRows.sort();
-		
+
 		for (let i = parentRows.length - 1; i >= 0; i--) {
 			let row = parentRows[i];
 			this._closeContainer(row, true);
 			this.toggleOpenState(row, true);
 		}
 		this._refreshItemRowMap();
-		
+
 		let numSorted = itemIDs.length - skipped.length;
 		if (numSorted) {
 			Zotero.debug(`Sorted ${numSorted} child items by parent toggle`);
@@ -1440,69 +1397,66 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 			Zotero.debug(`${itemIDs.length} items left to sort`);
 		}
 	}
-	
+
 	var primaryField = this.getSortField();
 	var sortFields = this.getSortFields();
 	var dir = this.getSortDirection();
 	var order = dir == 'descending' ? -1 : 1;
 	var collation = Zotero.getLocaleCollation();
 	var sortCreatorAsString = Zotero.Prefs.get('sortCreatorAsString');
-	
+
 	Zotero.debug(`Sorting items list by ${sortFields.join(", ")} ${dir} `
 		+ (itemIDs && itemIDs.length
 			? `for ${itemIDs.length} ` + Zotero.Utilities.pluralize(itemIDs.length, ['item', 'items'])
 			: ""));
-	
+
 	// Set whether rows with empty values should be displayed last,
 	// which may be different for primary and secondary sorting.
 	var emptyFirst = {};
 	switch (primaryField) {
-	case 'title':
-		emptyFirst.title = true;
-		break;
-	
-	// When sorting by title we want empty titles at the top, but if not
-	// sorting by title, empty titles should sort to the bottom so that new
-	// empty items don't get sorted to the middle of the items list.
-	default:
-		emptyFirst.title = false;
+		case 'title':
+			emptyFirst.title = true;
+			break;
+
+		// When sorting by title we want empty titles at the top, but if not
+		// sorting by title, empty titles should sort to the bottom so that new
+		// empty items don't get sorted to the middle of the items list.
+		default:
+			emptyFirst.title = false;
 	}
-	
+
 	// Cache primary values while sorting, since base-field-mapped getField()
 	// calls are relatively expensive
 	var cache = {};
 	sortFields.forEach(x => cache[x] = {})
-	
+
 	// Get the display field for a row (which might be a placeholder title)
 	function getField(field, row) {
 		var item = row.ref;
-		
+
 		switch (field) {
 			case 'title':
 				return Zotero.Items.getSortTitle(item.getDisplayTitle());
-			
+
 			case 'hasAttachment':
 				if (item.isFileAttachment()) {
 					var state = item.fileExistsCached() ? 1 : -1;
-				}
-				else if (item.isRegularItem()) {
+				} else if (item.isRegularItem()) {
 					var state = item.getBestAttachmentStateCached();
-				}
-				else {
+				} else {
 					return 0;
 				}
 				// Make sort order present, missing, empty when ascending
 				if (state === 1) {
 					state = 2;
-				}
-				else if (state === -1) {
+				} else if (state === -1) {
 					state = 1;
 				}
 				return state;
-			
+
 			case 'numNotes':
 				return row.numNotes(false, true) || 0;
-			
+
 			// Use unformatted part of date strings (YYYY-MM-DD) for sorting
 			case 'date':
 				var val = row.ref.getField('date', true, true);
@@ -1513,7 +1467,7 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 					}
 				}
 				return val;
-			
+
 			case 'year':
 				var val = row.ref.getField('date', true, true);
 				if (val) {
@@ -1523,52 +1477,52 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 					}
 				}
 				return val;
-			
+
 			default:
 				return row.ref.getField(field, false, true);
 		}
 	}
-	
+
 	var includeTrashed = this.collectionTreeRow.isTrash();
-	
+
 	function fieldCompare(a, b, sortField) {
 		var aItemID = a.id;
 		var bItemID = b.id;
 		var fieldA = cache[sortField][aItemID];
 		var fieldB = cache[sortField][bItemID];
-		
+
 		switch (sortField) {
 			case 'firstCreator':
 				return creatorSort(a, b);
-			
+
 			case 'itemType':
 				var typeA = Zotero.ItemTypes.getLocalizedString(a.ref.itemTypeID);
 				var typeB = Zotero.ItemTypes.getLocalizedString(b.ref.itemTypeID);
 				return (typeA > typeB) ? 1 : (typeA < typeB) ? -1 : 0;
-				
+
 			default:
 				if (fieldA === undefined) {
 					cache[sortField][aItemID] = fieldA = getField(sortField, a);
 				}
-				
+
 				if (fieldB === undefined) {
 					cache[sortField][bItemID] = fieldB = getField(sortField, b);
 				}
-				
+
 				// Display rows with empty values last
 				if (!emptyFirst[sortField]) {
-					if(fieldA === '' && fieldB !== '') return 1;
-					if(fieldA !== '' && fieldB === '') return -1;
+					if (fieldA === '' && fieldB !== '') return 1;
+					if (fieldA !== '' && fieldB === '') return -1;
 				}
-				
+
 				if (sortField == 'hasAttachment') {
 					return fieldB - fieldA;
 				}
-				
+
 				return collation.compareString(1, fieldA, fieldB);
 		}
 	}
-	
+
 	var rowSort = function (a, b) {
 		for (let i = 0; i < sortFields.length; i++) {
 			let cmp = fieldCompare(a, b, sortFields[i]);
@@ -1578,9 +1532,9 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 		}
 		return 0;
 	};
-	
+
 	var creatorSortCache = {};
-	
+
 	// Regexp to extract the whole string up to an optional "and" or "et al."
 	var andEtAlRegExp = new RegExp(
 		// Extract the beginning of the string in non-greedy mode
@@ -1591,7 +1545,7 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 		+ "| " + Zotero.getString('general.and') + " "
 		+ ")"
 	);
-	
+
 	function creatorSort(a, b) {
 		var itemA = a.ref;
 		var itemB = b.ref;
@@ -1611,8 +1565,7 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 			let firstCreator = Zotero.Items.getSortTitle(sortStringA);
 			if (sortCreatorAsString) {
 				var fieldA = firstCreator;
-			}
-			else {
+			} else {
 				var matches = andEtAlRegExp.exec(firstCreator);
 				var fieldA = matches ? matches[0] : '';
 			}
@@ -1622,25 +1575,24 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 			let firstCreator = Zotero.Items.getSortTitle(sortStringB);
 			if (sortCreatorAsString) {
 				var fieldB = firstCreator;
-			}
-			else {
+			} else {
 				var matches = andEtAlRegExp.exec(firstCreator);
 				var fieldB = matches ? matches[0] : '';
 			}
 			creatorSortCache[bItemID] = fieldB;
 		}
-		
+
 		if (fieldA === "" && fieldB === "") {
 			return 0;
 		}
-		
+
 		// Display rows with empty values last
 		if (fieldA === '' && fieldB !== '') return 1;
 		if (fieldA !== '' && fieldB === '') return -1;
-		
+
 		return collation.compareString(1, fieldA, fieldB);
 	}
-	
+
 	// Need to close all containers before sorting
 	if (!this.selection.selectEventsSuppressed) {
 		var unsuppress = this.selection.selectEventsSuppressed = true;
@@ -1648,7 +1600,7 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 	}
 	var savedSelection = this.getSelectedItems(true);
 	var openItemIDs = this._saveOpenState(true);
-	
+
 	// Sort specific items
 	if (itemIDs) {
 		let idsToSort = new Set(itemIDs);
@@ -1663,19 +1615,19 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 	else {
 		this._rows.sort((a, b) => rowSort(a, b) * order);
 	}
-	
+
 	this._refreshItemRowMap();
-	
+
 	this.rememberOpenState(openItemIDs);
 	this.rememberSelection(savedSelection);
-	
+
 	if (unsuppress) {
 		this._treebox.endUpdateBatch();
 		this.selection.selectEventsSuppressed = false;
 	}
-	
+
 	this._treebox.invalidate();
-	
+
 	var numSorted = itemIDs ? itemIDs.length : this._rows.length;
 	Zotero.debug(`Sorted ${numSorted} ${Zotero.Utilities.pluralize(numSorted, ['item', 'items'])} `
 		+ `in ${new Date - t} ms`);
@@ -1685,16 +1637,16 @@ Zotero.ItemTreeView.prototype.sort = function (itemIDs) {
 /**
  * Show intro text in middle pane for some views when no items
  */
-Zotero.ItemTreeView.prototype._updateIntroText = function() {
+Zotero.ItemTreeView.prototype._updateIntroText = function () {
 	if (!this.window.ZoteroPane) {
 		return;
 	}
-	
+
 	if (this.collectionTreeRow && !this.rowCount) {
 		let doc = this._ownerDocument;
 		let ns = 'http://www.w3.org/1999/xhtml'
 		let div;
-		
+
 		// My Library and no groups
 		if (this.collectionTreeRow.isLibrary() && !Zotero.Groups.getAll().length) {
 			div = doc.createElementNS(ns, 'div');
@@ -1710,7 +1662,7 @@ Zotero.ItemTreeView.prototype._updateIntroText = function() {
 			html = `<b>${html}</b>`;
 			p.innerHTML = html;
 			div.appendChild(p);
-			
+
 			p = doc.createElementNS(ns, 'p');
 			html = Zotero.getString(
 				'pane.items.intro.text2',
@@ -1724,12 +1676,12 @@ Zotero.ItemTreeView.prototype._updateIntroText = function() {
 			html = html.replace(
 				/\[([^\]]+)](.+)\[([^\]]+)]/,
 				`<span class="text-link" data-href="${ZOTERO_CONFIG.QUICK_START_URL}">$1</span>`
-					+ '$2'
-					+ `<span class="text-link" data-href="${ZOTERO_CONFIG.CONNECTORS_URL}">$3</span>`
+				+ '$2'
+				+ `<span class="text-link" data-href="${ZOTERO_CONFIG.CONNECTORS_URL}">$3</span>`
 			);
 			p.innerHTML = html;
 			div.appendChild(p);
-			
+
 			p = doc.createElementNS(ns, 'p');
 			html = Zotero.getString('pane.items.intro.text3', [Zotero.clientName]);
 			// Encode special chars, which shouldn't exist
@@ -1740,7 +1692,7 @@ Zotero.ItemTreeView.prototype._updateIntroText = function() {
 			);
 			p.innerHTML = html;
 			div.appendChild(p);
-			
+
 			// Activate text links
 			for (let span of div.getElementsByTagName('span')) {
 				if (span.classList.contains('text-link')) {
@@ -1758,7 +1710,7 @@ Zotero.ItemTreeView.prototype._updateIntroText = function() {
 					}
 				}
 			}
-			
+
 			div.setAttribute('allowdrop', true);
 		}
 		// My Publications
@@ -1768,11 +1720,11 @@ Zotero.ItemTreeView.prototype._updateIntroText = function() {
 			let p = doc.createElementNS(ns, 'p');
 			p.textContent = Zotero.getString('publications.intro.text1', ZOTERO_CONFIG.DOMAIN_NAME);
 			div.appendChild(p);
-			
+
 			p = doc.createElementNS(ns, 'p');
 			p.textContent = Zotero.getString('publications.intro.text2');
 			div.appendChild(p);
-			
+
 			p = doc.createElementNS(ns, 'p');
 			let html = Zotero.getString('publications.intro.text3');
 			// Convert <b> tags to placeholders
@@ -1791,7 +1743,7 @@ Zotero.ItemTreeView.prototype._updateIntroText = function() {
 		}
 		this._introText = null;
 	}
-	
+
 	if (this._introText || this._introText === null) {
 		this.window.ZoteroPane.clearItemsPaneMessage();
 		this._introText = false;
@@ -1815,7 +1767,7 @@ Zotero.ItemTreeView.prototype.selectItem = async function (id) {
 
 Zotero.ItemTreeView.prototype.selectItems = async function (ids, noRecurse) {
 	if (!ids.length) return 0;
-	
+
 	// If no row map, we're probably in the process of switching collections,
 	// so store the items to select on the item group for later
 	if (!this._rowMap) {
@@ -1824,30 +1776,30 @@ Zotero.ItemTreeView.prototype.selectItems = async function (ids, noRecurse) {
 			Zotero.debug("_rowMap not yet set; not selecting items");
 			return 0;
 		}
-		
+
 		Zotero.debug('Item group not found and no row map in ItemTreeView.selectItem() -- discarding select', 2);
 		return 0;
 	}
-	
+
 	var idsToSelect = [];
 	for (let id of ids) {
 		let row = this._rowMap[id];
 		let item = Zotero.Items.get(id);
-		
+
 		// Can't select a deleted item if we're not in the trash
 		if (item.deleted && !this.collectionTreeRow.isTrash()) {
 			continue;
 		}
-		
+
 		// Get the row of the parent, if there is one
 		let parent = item.parentItemID;
 		let parentRow = parent && this._rowMap[parent];
-		
+
 		// If row with id isn't visible, check to see if it's hidden under a parent
 		if (row == undefined) {
 			if (!parent || parentRow === undefined) {
 				// No parent -- it's not here
-				
+
 				// Clear the quick search and tag selection and try again (once)
 				if (!noRecurse && this.window.ZoteroPane) {
 					let cleared1 = await this.window.ZoteroPane.clearQuicksearch();
@@ -1857,37 +1809,37 @@ Zotero.ItemTreeView.prototype.selectItems = async function (ids, noRecurse) {
 						return this.selectItems(ids, true);
 					}
 				}
-				
+
 				Zotero.debug(`Couldn't find row for item ${id} -- not selecting`);
 				continue;
 			}
-			
+
 			// If parent is already open and we haven't found the item, the child
 			// hasn't yet been added to the view, so close parent to allow refresh
 			this._closeContainer(parentRow);
-			
+
 			// Open the parent
 			this.toggleOpenState(parentRow);
 		}
-		
+
 		// Since we're opening containers, we still need to reference by id
 		idsToSelect.push(id);
 	}
-	
+
 	// Now that all items have been expanded, get associated rows
 	var rowsToSelect = [];
 	for (let id of idsToSelect) {
 		let row = this._rowMap[id];
 		rowsToSelect.push(row);
 	}
-	
+
 	// If items are already selected, just scroll to the top-most one
 	var selectedRows = new Set(this.getSelectedRowIndexes());
 	if (rowsToSelect.length == selectedRows.size && rowsToSelect.every(row => selectedRows.has(row))) {
 		this.ensureRowsAreVisible(rowsToSelect);
 		return rowsToSelect.length;
 	}
-	
+
 	// Single item
 	if (rowsToSelect.length == 1) {
 		// this.selection.select() triggers the <tree>'s 'onselect' attribute, which calls
@@ -1903,14 +1855,14 @@ Zotero.ItemTreeView.prototype.selectItems = async function (ids, noRecurse) {
 			}
 			this.selection.select(rowsToSelect[0]);
 		}
-		// Ignore NS_ERROR_UNEXPECTED from nsITreeSelection::select(), apparently when the tree
-		// disappears before it's called (though I can't reproduce it):
-		//
-		// https://forums.zotero.org/discussion/comment/297039/#Comment_297039
+			// Ignore NS_ERROR_UNEXPECTED from nsITreeSelection::select(), apparently when the tree
+			// disappears before it's called (though I can't reproduce it):
+			//
+			// https://forums.zotero.org/discussion/comment/297039/#Comment_297039
 		catch (e) {
 			Zotero.logError(e);
 		}
-		
+
 		if (promise) {
 			await promise;
 		}
@@ -1919,7 +1871,7 @@ Zotero.ItemTreeView.prototype.selectItems = async function (ids, noRecurse) {
 	else {
 		this.selection.clearSelection();
 		this.selection.selectEventsSuppressed = true;
-		
+
 		var lastStart = 0;
 		for (let i = 0, len = rowsToSelect.length; i < len; i++) {
 			if (i == len - 1 || rowsToSelect[i + 1] != rowsToSelect[i] + 1) {
@@ -1927,12 +1879,12 @@ Zotero.ItemTreeView.prototype.selectItems = async function (ids, noRecurse) {
 				lastStart = i + 1;
 			}
 		}
-		
+
 		this.selection.selectEventsSuppressed = false;
 	}
-	
+
 	this.ensureRowsAreVisible(rowsToSelect);
-	
+
 	return rowsToSelect.length;
 };
 
@@ -1942,26 +1894,26 @@ Zotero.ItemTreeView.prototype.ensureRowsAreVisible = function (rows) {
 	const pageLength = this._treebox.getPageLength();
 	const lastVisibleRow = firstVisibleRow + pageLength;
 	const maxBuffer = 5;
-	
+
 	var isRowVisible = function (row) {
 		return row >= firstVisibleRow && row <= lastVisibleRow;
 	};
-	
+
 	rows = rows.concat();
 	rows.sort((a, b) => a - b);
-	
+
 	var rowsWithParents = [];
 	for (let row of rows) {
 		let parent = this.getParentIndex(row);
 		rowsWithParents.push(parent != -1 ? parent : row);
 	}
-	
+
 	// If all rows are visible, don't change anything
 	if (rows.every(row => isRowVisible(row))) {
 		//Zotero.debug("All rows are visible");
 		return;
 	}
-	
+
 	// If we can fit all parent rows in view, do that
 	for (let buffer = maxBuffer; buffer >= 0; buffer--) {
 		if (rowsWithParents[rowsWithParents.length - 1] - rowsWithParents[0] - buffer < pageLength) {
@@ -1970,7 +1922,7 @@ Zotero.ItemTreeView.prototype.ensureRowsAreVisible = function (rows) {
 			return;
 		}
 	}
-	
+
 	// If we can fit all rows in view, do that
 	for (let buffer = maxBuffer; buffer >= 0; buffer--) {
 		if (rows[rows.length - 1] - rows[0] - buffer < pageLength) {
@@ -1979,7 +1931,7 @@ Zotero.ItemTreeView.prototype.ensureRowsAreVisible = function (rows) {
 			return;
 		}
 	}
-	
+
 	// If more than half of the rows are visible, don't change anything
 	var visible = 0;
 	for (let row of rows) {
@@ -1991,19 +1943,19 @@ Zotero.ItemTreeView.prototype.ensureRowsAreVisible = function (rows) {
 		//Zotero.debug("More than half of rows are visible");
 		return;
 	}
-	
+
 	// If the first parent row isn't in view and we have enough room, make it visible, trying to
 	// put it five rows from the top
 	if (rows[0] != rowsWithParents[0]) {
 		for (let buffer = maxBuffer; buffer >= 0; buffer--) {
-			 if (rows[0] - rowsWithParents[0] - buffer <= pageLength) {
+			if (rows[0] - rowsWithParents[0] - buffer <= pageLength) {
 				//Zotero.debug(`Scrolling to first parent minus ${buffer}`);
 				this._treebox.scrollToRow(rowsWithParents[0] - buffer);
 				return;
 			}
 		}
 	}
-	
+
 	// Otherwise just put the first row at the top
 	//Zotero.debug("Scrolling to first row " + Math.max(rows[0] - maxBuffer, 0));
 	this._treebox.scrollToRow(Math.max(rows[0] - maxBuffer, 0));
@@ -2015,13 +1967,11 @@ Zotero.ItemTreeView.prototype.ensureRowsAreVisible = function (rows) {
  *
  * If asIDs is true, return an array of itemIDs instead
  */
-Zotero.ItemTreeView.prototype.getSelectedItems = function(asIDs)
-{
+Zotero.ItemTreeView.prototype.getSelectedItems = function (asIDs) {
 	var items = [], start = {}, end = {};
-	for (var i=0, len = this.selection.getRangeCount(); i<len; i++)
-	{
-		this.selection.getRangeAt(i,start,end);
-		for (var j=start.value; j<=end.value; j++) {
+	for (var i = 0, len = this.selection.getRangeCount(); i < len; i++) {
+		this.selection.getRangeAt(i, start, end);
+		for (var j = start.value; j <= end.value; j++) {
 			let row = this.getRow(j);
 			if (!row) {
 				Zotero.logError(`Row ${j} not found`);
@@ -2039,54 +1989,49 @@ Zotero.ItemTreeView.prototype.getSelectedItems = function(asIDs)
  *
  * @param	{Boolean}	[force=false]	Delete item even if removing from a collection
  */
-Zotero.ItemTreeView.prototype.deleteSelection = Zotero.Promise.coroutine(function* (force)
-{
+Zotero.ItemTreeView.prototype.deleteSelection = Zotero.Promise.coroutine(function* (force) {
 	if (arguments.length > 1) {
 		throw ("deleteSelection() no longer takes two parameters");
 	}
-	
+
 	if (this.selection.count == 0) {
 		return;
 	}
-	
+
 	//this._treebox.beginUpdateBatch();
-	
+
 	// Collapse open items
-	for (var i=0; i<this.rowCount; i++) {
+	for (var i = 0; i < this.rowCount; i++) {
 		if (this.selection.isSelected(i) && this.isContainer(i)) {
 			this._closeContainer(i, true);
 		}
 	}
 	this._refreshItemRowMap();
-	
+
 	// Create an array of selected items
 	var ids = [];
 	var start = {};
 	var end = {};
-	for (var i=0, len=this.selection.getRangeCount(); i<len; i++)
-	{
-		this.selection.getRangeAt(i,start,end);
-		for (var j=start.value; j<=end.value; j++)
+	for (var i = 0, len = this.selection.getRangeCount(); i < len; i++) {
+		this.selection.getRangeAt(i, start, end);
+		for (var j = start.value; j <= end.value; j++)
 			ids.push(this.getRow(j).id);
 	}
-	
+
 	var collectionTreeRow = this.collectionTreeRow;
-	
+
 	if (collectionTreeRow.isBucket()) {
 		collectionTreeRow.ref.deleteItems(ids);
 	}
 	if (collectionTreeRow.isTrash()) {
 		yield Zotero.Items.erase(ids);
-	}
-	else if (collectionTreeRow.isLibrary(true) || force) {
+	} else if (collectionTreeRow.isLibrary(true) || force) {
 		yield Zotero.Items.trashTx(ids);
-	}
-	else if (collectionTreeRow.isCollection()) {
+	} else if (collectionTreeRow.isCollection()) {
 		yield Zotero.DB.executeTransaction(function* () {
 			yield collectionTreeRow.ref.removeItems(ids);
 		});
-	}
-	else if (collectionTreeRow.isPublications()) {
+	} else if (collectionTreeRow.isPublications()) {
 		yield Zotero.Items.removeFromPublications(ids.map(id => Zotero.Items.get(id)));
 	}
 
@@ -2102,10 +2047,10 @@ Zotero.ItemTreeView.prototype.setFilter = Zotero.Promise.coroutine(function* (ty
 		Components.utils.reportError("Treebox didn't exist in itemTreeView.setFilter()");
 		return;
 	}
-	
+
 	this.selection.selectEventsSuppressed = true;
 	//this._treebox.beginUpdateBatch();
-	
+
 	switch (type) {
 		case 'search':
 			this.collectionTreeRow.setSearch(data);
@@ -2118,7 +2063,7 @@ Zotero.ItemTreeView.prototype.setFilter = Zotero.Promise.coroutine(function* (ty
 	}
 	var oldCount = this.rowCount;
 	yield this.refresh();
-	
+
 	//this._treebox.endUpdateBatch();
 	this.selection.selectEventsSuppressed = false;
 });
@@ -2127,10 +2072,9 @@ Zotero.ItemTreeView.prototype.setFilter = Zotero.Promise.coroutine(function* (ty
 /*
  *  Create map of item ids to row indexes
  */
-Zotero.ItemTreeView.prototype._refreshItemRowMap = function()
-{
+Zotero.ItemTreeView.prototype._refreshItemRowMap = function () {
 	var rowMap = {};
-	for (var i=0, len=this.rowCount; i<len; i++) {
+	for (var i = 0, len = this.rowCount; i < len; i++) {
 		let row = this.getRow(i);
 		let id = row.ref.id;
 		if (rowMap[id] !== undefined) {
@@ -2156,14 +2100,14 @@ Zotero.ItemTreeView.prototype.rememberSelection = function (selection) {
 	if (!selection.length) {
 		return;
 	}
-	
+
 	this.selection.clearSelection();
-	
+
 	if (!this.selection.selectEventsSuppressed) {
 		var unsuppress = this.selection.selectEventsSuppressed = true;
 		this._treebox.beginUpdateBatch();
 	}
-	
+
 	try {
 		for (let i = 0; i < selection.length; i++) {
 			if (this._rowMap[selection[i]] != null) {
@@ -2175,12 +2119,12 @@ Zotero.ItemTreeView.prototype.rememberSelection = function (selection) {
 				if (!item) {
 					continue;
 				}
-				
+
 				var parent = item.parentItemID;
 				if (!parent) {
 					continue;
 				}
-				
+
 				if (this._rowMap[parent] != null) {
 					this._closeContainer(this._rowMap[parent]);
 					this.toggleOpenState(this._rowMap[parent]);
@@ -2189,14 +2133,14 @@ Zotero.ItemTreeView.prototype.rememberSelection = function (selection) {
 			}
 		}
 	}
-	// Ignore NS_ERROR_UNEXPECTED from nsITreeSelection::toggleSelect(), apparently when the tree
-	// disappears before it's called (though I can't reproduce it):
-	//
-	// https://forums.zotero.org/discussion/69226/papers-become-invisible-in-the-middle-pane
+		// Ignore NS_ERROR_UNEXPECTED from nsITreeSelection::toggleSelect(), apparently when the tree
+		// disappears before it's called (though I can't reproduce it):
+		//
+		// https://forums.zotero.org/discussion/69226/papers-become-invisible-in-the-middle-pane
 	catch (e) {
 		Zotero.logError(e);
 	}
-	
+
 	if (unsuppress) {
 		this._treebox.endUpdateBatch();
 		this.selection.selectEventsSuppressed = false;
@@ -2207,8 +2151,7 @@ Zotero.ItemTreeView.prototype.rememberSelection = function (selection) {
 Zotero.ItemTreeView.prototype.selectSearchMatches = function () {
 	if (this._searchMode) {
 		this.rememberSelection(Array.from(this._searchItemIDs));
-	}
-	else {
+	} else {
 		this.selection.clearSelection();
 	}
 }
@@ -2222,7 +2165,7 @@ Zotero.ItemTreeView.prototype._saveOpenState = function (close) {
 			this._treebox.beginUpdateBatch();
 		}
 	}
-	for (var i=0; i<this._rows.length; i++) {
+	for (var i = 0; i < this._rows.length; i++) {
 		if (this.isContainer(i) && this.isContainerOpen(i)) {
 			itemIDs.push(this.getRow(i).ref.id);
 			if (close) {
@@ -2254,13 +2197,13 @@ Zotero.ItemTreeView.prototype.rememberOpenState = function (itemIDs) {
 	rowsToOpen.sort(function (a, b) {
 		return a - b;
 	});
-	
+
 	if (!this.selection.selectEventsSuppressed) {
 		var unsuppress = this.selection.selectEventsSuppressed = true;
 		this._treebox.beginUpdateBatch();
 	}
 	// Reopen from bottom up
-	for (var i=rowsToOpen.length-1; i>=0; i--) {
+	for (var i = rowsToOpen.length - 1; i >= 0; i--) {
 		this.toggleOpenState(rowsToOpen[i], true);
 	}
 	this._refreshItemRowMap();
@@ -2278,12 +2221,12 @@ Zotero.ItemTreeView.prototype.expandMatchParents = function (searchParentIDs) {
 	if (!this._searchMode) {
 		return;
 	}
-	
+
 	if (!this.selection.selectEventsSuppressed) {
 		var unsuppress = this.selection.selectEventsSuppressed = true;
 		this._treebox.beginUpdateBatch();
 	}
-	for (var i=0; i<this.rowCount; i++) {
+	for (var i = 0; i < this.rowCount; i++) {
 		var id = this.getRow(i).ref.id;
 		if (searchParentIDs.has(id) && this.isContainer(i) && !this.isContainerOpen(i)) {
 			var t2 = new Date();
@@ -2302,7 +2245,7 @@ Zotero.ItemTreeView.prototype.expandMatchParents = function (searchParentIDs) {
 Zotero.ItemTreeView.prototype.expandAllRows = function () {
 	var unsuppress = this.selection.selectEventsSuppressed = true;
 	this._treebox.beginUpdateBatch();
-	for (var i=0; i<this.rowCount; i++) {
+	for (var i = 0; i < this.rowCount; i++) {
 		if (this.isContainer(i) && !this.isContainerOpen(i)) {
 			this.toggleOpenState(i, true);
 		}
@@ -2316,7 +2259,7 @@ Zotero.ItemTreeView.prototype.expandAllRows = function () {
 Zotero.ItemTreeView.prototype.collapseAllRows = function () {
 	var unsuppress = this.selection.selectEventsSuppressed = true;
 	this._treebox.beginUpdateBatch();
-	for (var i=0; i<this.rowCount; i++) {
+	for (var i = 0; i < this.rowCount; i++) {
 		if (this.isContainer(i)) {
 			this._closeContainer(i, true);
 		}
@@ -2331,7 +2274,7 @@ Zotero.ItemTreeView.prototype.expandSelectedRows = function () {
 	var start = {}, end = {};
 	this.selection.selectEventsSuppressed = true;
 	this._treebox.beginUpdateBatch();
-	for (var i = 0, len = this.selection.getRangeCount(); i<len; i++) {
+	for (var i = 0, len = this.selection.getRangeCount(); i < len; i++) {
 		this.selection.getRangeAt(i, start, end);
 		for (var j = start.value; j <= end.value; j++) {
 			if (this.isContainer(j) && !this.isContainerOpen(j)) {
@@ -2349,7 +2292,7 @@ Zotero.ItemTreeView.prototype.collapseSelectedRows = function () {
 	var start = {}, end = {};
 	this.selection.selectEventsSuppressed = true;
 	this._treebox.beginUpdateBatch();
-	for (var i = 0, len = this.selection.getRangeCount(); i<len; i++) {
+	for (var i = 0, len = this.selection.getRangeCount(); i < len; i++) {
 		this.selection.getRangeAt(i, start, end);
 		for (let j = end.value; j >= start.value; j--) {
 			if (this.isContainer(j)) {
@@ -2363,9 +2306,9 @@ Zotero.ItemTreeView.prototype.collapseSelectedRows = function () {
 }
 
 
-Zotero.ItemTreeView.prototype.getVisibleFields = function() {
+Zotero.ItemTreeView.prototype.getVisibleFields = function () {
 	var columns = [];
-	for (var i=0, len=this._treebox.columns.count; i<len; i++) {
+	for (var i = 0, len = this._treebox.columns.count; i < len; i++) {
 		var col = this._treebox.columns.getColumnAt(i);
 		if (col.element.getAttribute('hidden') != 'true') {
 			columns.push(col.id.substring(20));
@@ -2381,12 +2324,12 @@ Zotero.ItemTreeView.prototype.getVisibleFields = function() {
  * @param {Boolean} asIDs - Return itemIDs
  * @return {Zotero.Item[]|Integer[]} - An array of Zotero.Item objects or itemIDs
  */
-Zotero.ItemTreeView.prototype.getSortedItems = function(asIDs) {
+Zotero.ItemTreeView.prototype.getSortedItems = function (asIDs) {
 	return this._rows.map(row => asIDs ? row.ref.id : row.ref);
 }
 
 
-Zotero.ItemTreeView.prototype.getSortField = function() {
+Zotero.ItemTreeView.prototype.getSortField = function () {
 	if (this.collectionTreeRow.isFeed()) {
 		return 'id';
 	}
@@ -2410,15 +2353,14 @@ Zotero.ItemTreeView.prototype.getSortFields = function () {
 			.split(',')
 			.map((x) => x.trim())
 			.filter((x) => x !== '');
-	}
-	catch (e) {
+	} catch (e) {
 		Zotero.debug(e, 1);
 		Components.utils.reportError(e);
 		// This should match the default value for the fallbackSort pref
 		var fallbackFields = ['firstCreator', 'date', 'title', 'dateAdded'];
 	}
 	fields = Zotero.Utilities.arrayUnique(fields.concat(fallbackFields));
-	
+
 	// If date appears after year, remove it, unless it's the explicit secondary sort
 	var yearPos = fields.indexOf('year');
 	if (yearPos != -1) {
@@ -2427,7 +2369,7 @@ Zotero.ItemTreeView.prototype.getSortFields = function () {
 			fields.splice(datePos, 1);
 		}
 	}
-	
+
 	return fields;
 }
 
@@ -2435,7 +2377,7 @@ Zotero.ItemTreeView.prototype.getSortFields = function () {
 /*
  * Returns 'ascending' or 'descending'
  */
-Zotero.ItemTreeView.prototype.getSortDirection = function() {
+Zotero.ItemTreeView.prototype.getSortDirection = function () {
 	if (this.collectionTreeRow.isFeed()) {
 		return Zotero.Prefs.get('feeds.sortAscending') ? 'ascending' : 'descending';
 	}
@@ -2461,17 +2403,17 @@ Zotero.ItemTreeView.prototype.setSecondarySortField = function (secondaryField) 
 	var primaryField = this.getSortField();
 	var currentSecondaryField = this.getSecondarySortField();
 	var sortFields = this.getSortFields();
-	
+
 	if (primaryField == secondaryField) {
 		return false;
 	}
-	
+
 	if (currentSecondaryField) {
 		// If same as the current explicit secondary sort, ignore
 		if (currentSecondaryField == secondaryField) {
 			return false;
 		}
-		
+
 		// If not, but same as first implicit sort, remove current explicit sort
 		if (sortFields[2] && sortFields[2] == secondaryField) {
 			Zotero.Prefs.clear('secondarySort.' + primaryField);
@@ -2482,7 +2424,7 @@ Zotero.ItemTreeView.prototype.setSecondarySortField = function (secondaryField) 
 	else if (sortFields[1] && sortFields[1] == secondaryField) {
 		return false;
 	}
-	
+
 	Zotero.Prefs.set('secondarySort.' + primaryField, secondaryField);
 	return true;
 }
@@ -2493,36 +2435,36 @@ Zotero.ItemTreeView.prototype.setSecondarySortField = function (secondaryField) 
  */
 Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 	var menupopup = event.originalTarget;
-	
+
 	var ns = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
 	var prefix = 'zotero-column-header-';
 	var doc = menupopup.ownerDocument;
-	
+
 	var anonid = menupopup.getAttribute('anonid');
 	if (anonid.indexOf(prefix) == 0) {
 		return;
 	}
-	
+
 	var lastChild = menupopup.lastChild;
-	
+
 	try {
 		// More Columns menu
 		let id = prefix + 'more-menu';
-		
+
 		let moreMenu = doc.createElementNS(ns, 'menu');
 		moreMenu.setAttribute('label', Zotero.getString('pane.items.columnChooser.moreColumns'));
 		moreMenu.setAttribute('anonid', id);
-		
+
 		let moreMenuPopup = doc.createElementNS(ns, 'menupopup');
 		moreMenuPopup.setAttribute('anonid', id + '-popup');
-		
+
 		let treecols = menupopup.parentNode.parentNode;
 		let subs = Array.from(treecols.getElementsByAttribute('submenu', 'true'))
 			.map(x => x.getAttribute('label'));
-		
+
 		var moreItems = [];
-		
-		for (let i=0; i<menupopup.childNodes.length; i++) {
+
+		for (let i = 0; i < menupopup.childNodes.length; i++) {
 			let elem = menupopup.childNodes[i];
 			if (elem.localName == 'menuseparator') {
 				break;
@@ -2540,7 +2482,7 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 			let elem = menupopup.childNodes[i];
 			elem.setAttribute('disabled', labels.indexOf(elem.getAttribute('label')) != -1);
 		}
-		
+
 		// Sort fields and move to submenu
 		var collation = Zotero.getLocaleCollation();
 		moreItems.sort(function (a, b) {
@@ -2549,15 +2491,14 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 		moreItems.forEach(function (elem) {
 			moreMenuPopup.appendChild(menupopup.removeChild(elem));
 		});
-		
+
 		moreMenu.appendChild(moreMenuPopup);
 		menupopup.insertBefore(moreMenu, lastChild);
-	}
-	catch (e) {
+	} catch (e) {
 		Components.utils.reportError(e);
 		Zotero.debug(e, 1);
 	}
-	
+
 	//
 	// Secondary Sort menu
 	//
@@ -2570,20 +2511,20 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 			if (sortFields[1]) {
 				secondaryField = sortFields[1];
 			}
-			
+
 			// Get localized names from treecols, since the names are currently done via .dtd
 			let treecols = menupopup.parentNode.parentNode;
 			let primaryFieldLabel = treecols.getElementsByAttribute('id',
 				'zotero-items-column-' + primaryField)[0].getAttribute('label');
-			
+
 			let sortMenu = doc.createElementNS(ns, 'menu');
 			sortMenu.setAttribute('label',
 				Zotero.getString('pane.items.columnChooser.secondarySort', primaryFieldLabel));
 			sortMenu.setAttribute('anonid', id);
-			
+
 			let sortMenuPopup = doc.createElementNS(ns, 'menupopup');
 			sortMenuPopup.setAttribute('anonid', id + '-popup');
-			
+
 			// Generate menuitems
 			let sortOptions = [
 				'title',
@@ -2596,7 +2537,7 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 				'dateAdded',
 				'dateModified'
 			];
-			for (let i=0; i<sortOptions.length; i++) {
+			for (let i = 0; i < sortOptions.length; i++) {
 				let field = sortOptions[i];
 				// Hide current primary field, and don't show Year for Date, since it would be a no-op
 				if (field == primaryField || (primaryField == 'date' && field == 'year')) {
@@ -2604,7 +2545,7 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 				}
 				let label = treecols.getElementsByAttribute('id',
 					'zotero-items-column-' + field)[0].getAttribute('label');
-				
+
 				let sortMenuItem = doc.createElementNS(ns, 'menuitem');
 				sortMenuItem.setAttribute('fieldName', field);
 				sortMenuItem.setAttribute('label', label);
@@ -2617,16 +2558,15 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 					+ 'if (view.setSecondarySortField(this.getAttribute("fieldName"))) { view.sort(); }');
 				sortMenuPopup.appendChild(sortMenuItem);
 			}
-			
+
 			sortMenu.appendChild(sortMenuPopup);
 			menupopup.insertBefore(sortMenu, lastChild);
-		}
-		catch (e) {
+		} catch (e) {
 			Components.utils.reportError(e);
 			Zotero.debug(e, 1);
 		}
 	}
-	
+
 	sep = doc.createElementNS(ns, 'menuseparator');
 	sep.setAttribute('anonid', prefix + 'sep');
 	menupopup.insertBefore(sep, lastChild);
@@ -2636,14 +2576,13 @@ Zotero.ItemTreeView.prototype.onColumnPickerShowing = function (event) {
 Zotero.ItemTreeView.prototype.onColumnPickerHidden = function (event) {
 	var menupopup = event.originalTarget;
 	var prefix = 'zotero-column-header-';
-	
-	for (let i=0; i<menupopup.childNodes.length; i++) {
+
+	for (let i = 0; i < menupopup.childNodes.length; i++) {
 		let elem = menupopup.childNodes[i];
 		if (elem.getAttribute('anonid').indexOf(prefix) == 0) {
 			try {
 				menupopup.removeChild(elem);
-			}
-			catch (e) {
+			} catch (e) {
 				Zotero.debug(e, 1);
 			}
 			i--;
@@ -2664,18 +2603,15 @@ Zotero.ItemTreeView.prototype._getTreeElement = function () {
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-Zotero.ItemTreeCommandController = function(tree)
-{
+Zotero.ItemTreeCommandController = function (tree) {
 	this.tree = tree;
 }
 
-Zotero.ItemTreeCommandController.prototype.supportsCommand = function(cmd)
-{
+Zotero.ItemTreeCommandController.prototype.supportsCommand = function (cmd) {
 	return (cmd == 'cmd_selectAll');
 }
 
-Zotero.ItemTreeCommandController.prototype.isCommandEnabled = function(cmd)
-{
+Zotero.ItemTreeCommandController.prototype.isCommandEnabled = function (cmd) {
 	return (cmd == 'cmd_selectAll');
 }
 
@@ -2683,16 +2619,14 @@ Zotero.ItemTreeCommandController.prototype.doCommand = function (cmd) {
 	if (cmd == 'cmd_selectAll') {
 		if (this.tree.view.wrappedJSObject.collectionTreeRow.isSearchMode()) {
 			this.tree.view.wrappedJSObject.selectSearchMatches();
-		}
-		else {
+		} else {
 			this.tree.view.selection.selectAll();
 		}
 	}
 }
 
-Zotero.ItemTreeCommandController.prototype.onEvent = function(evt)
-{
-	
+Zotero.ItemTreeCommandController.prototype.onEvent = function (evt) {
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2709,7 +2643,7 @@ Zotero.ItemTreeView.prototype.onDragStart = function (event) {
 	if (Zotero.isWin || Zotero.isLinux) {
 		event.dataTransfer.effectAllowed = 'copyMove';
 	}
-	
+
 	var itemIDs = this.getSelectedItems(true);
 	event.dataTransfer.setData("zotero/item", itemIDs);
 	// dataTransfer.mozSourceNode doesn't seem to be properly set anymore (tested in 50), so store
@@ -2718,16 +2652,16 @@ Zotero.ItemTreeView.prototype.onDragStart = function (event) {
 		Zotero.debug("mozSourceNode not set -- storing source node");
 		Zotero.DragDrop.currentSourceNode = event.target;
 	}
-	
+
 	var items = Zotero.Items.get(itemIDs);
-	
+
 	// If at least one file is a non-web-link attachment and can be found,
 	// enable dragging to file system
 	var files = items
 		.filter(item => item.isAttachment())
 		.map(item => item.getFilePath())
 		.filter(path => path);
-	
+
 	if (files.length) {
 		// Advanced multi-file drag (with unique filenames, which otherwise happen automatically on
 		// Windows but not Linux) and auxiliary snapshot file copying on macOS
@@ -2735,15 +2669,15 @@ Zotero.ItemTreeView.prototype.onDragStart = function (event) {
 		if (Zotero.isMac) {
 			dataProvider = new Zotero.ItemTreeView.fileDragDataProvider(itemIDs);
 		}
-		
+
 		for (let i = 0; i < files.length; i++) {
 			let file = Zotero.File.pathToFile(files[i]);
-			
+
 			if (dataProvider) {
 				Zotero.debug("Adding application/x-moz-file-promise");
 				event.dataTransfer.mozSetDataAt("application/x-moz-file-promise", dataProvider, i);
 			}
-			
+
 			// Allow dragging to filesystem on Linux and Windows
 			let uri;
 			if (!Zotero.isMac) {
@@ -2753,42 +2687,40 @@ Zotero.ItemTreeView.prototype.onDragStart = function (event) {
 				uri = fph.getURLSpecFromFile(file);
 				event.dataTransfer.mozSetDataAt("text/x-moz-url", uri + '\n' + file.leafName, i);
 			}
-			
+
 			// Allow dragging to web targets (e.g., Gmail)
 			Zotero.debug("Adding application/x-moz-file " + i);
 			event.dataTransfer.mozSetDataAt("application/x-moz-file", file, i);
-			
+
 			if (Zotero.isWin) {
 				event.dataTransfer.mozSetDataAt("application/x-moz-file-promise-url", uri, i);
-			}
-			else if (Zotero.isLinux) {
+			} else if (Zotero.isLinux) {
 				// Don't create a symlink for an unmodified drag
 				event.dataTransfer.effectAllowed = 'copy';
 			}
 		}
 	}
-	
+
 	// Get Quick Copy format for current URL (set via /ping from connector)
 	var format = Zotero.QuickCopy.getFormatFromURL(Zotero.QuickCopy.lastActiveURL);
-	
+
 	Zotero.debug("Dragging with format " + format);
-	
-	var exportCallback = function(obj, worked) {
+
+	var exportCallback = function (obj, worked) {
 		if (!worked) {
 			Zotero.log(Zotero.getString("fileInterface.exportError"), 'warning');
 			return;
 		}
-		
+
 		var text = obj.string.replace(/\r\n/g, "\n");
 		event.dataTransfer.setData("text/plain", text);
 	}
-	
+
 	format = Zotero.QuickCopy.unserializeSetting(format);
 	try {
 		if (format.mode == 'export') {
 			Zotero.QuickCopy.getContentFromItems(items, format, exportCallback);
-		}
-		else if (format.mode == 'bibliography') {
+		} else if (format.mode == 'bibliography') {
 			var content = Zotero.QuickCopy.getContentFromItems(items, format, null, event.shiftKey);
 			if (content) {
 				if (content.html) {
@@ -2796,12 +2728,10 @@ Zotero.ItemTreeView.prototype.onDragStart = function (event) {
 				}
 				event.dataTransfer.setData("text/plain", content.text);
 			}
-		}
-		else {
+		} else {
 			Components.utils.reportError("Invalid Quick Copy mode");
 		}
-	}
-	catch (e) {
+	} catch (e) {
 		Zotero.debug(e);
 		Components.utils.reportError(e + " with '" + format.id + "'");
 	}
@@ -2822,48 +2752,47 @@ Zotero.ItemTreeView.fileDragDataProvider = function (itemIDs) {
 };
 
 Zotero.ItemTreeView.fileDragDataProvider.prototype = {
-	QueryInterface : function(iid) {
+	QueryInterface: function (iid) {
 		if (iid.equals(Components.interfaces.nsIFlavorDataProvider) ||
-				iid.equals(Components.interfaces.nsISupports)) {
+			iid.equals(Components.interfaces.nsISupports)) {
 			return this;
 		}
 		throw Components.results.NS_NOINTERFACE;
 	},
-	
-	getFlavorData : function(transferable, flavor, data, dataLen) {
+
+	getFlavorData: function (transferable, flavor, data, dataLen) {
 		Zotero.debug("Getting flavor data for " + flavor);
 		if (flavor == "application/x-moz-file-promise") {
 			// On platforms other than OS X, the only directory we know of here
 			// is the system temp directory, and we pass the nsIFile of the file
 			// copied there in data.value below
 			var useTemp = !Zotero.isMac;
-			
+
 			// Get the destination directory
 			var dirPrimitive = {};
 			var dataSize = {};
 			transferable.getTransferData("application/x-moz-file-promise-dir", dirPrimitive, dataSize);
 			var destDir = dirPrimitive.value.QueryInterface(Components.interfaces.nsIFile);
-			
+
 			var draggedItems = Zotero.Items.get(this._itemIDs);
 			var items = [];
-			
+
 			// Make sure files exist
 			var notFoundNames = [];
-			for (var i=0; i<draggedItems.length; i++) {
+			for (var i = 0; i < draggedItems.length; i++) {
 				// TODO create URL?
 				if (!draggedItems[i].isAttachment() ||
-						draggedItems[i].getAttachmentLinkMode() == Zotero.Attachments.LINK_MODE_LINKED_URL) {
+					draggedItems[i].getAttachmentLinkMode() == Zotero.Attachments.LINK_MODE_LINKED_URL) {
 					continue;
 				}
-				
+
 				if (draggedItems[i].getFile()) {
 					items.push(draggedItems[i]);
-				}
-				else {
+				} else {
 					notFoundNames.push(draggedItems[i].getField('title'));
 				}
 			}
-			
+
 			// If using the temp directory, create a directory to store multiple
 			// files, since we can (it seems) only pass one nsIFile in data.value
 			if (useTemp && items.length > 1) {
@@ -2874,20 +2803,20 @@ Zotero.ItemTreeView.fileDragDataProvider.prototype = {
 				}
 				destDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0o755);
 			}
-			
+
 			var copiedFiles = [];
 			var existingItems = [];
 			var existingFileNames = [];
-			
-			for (var i=0; i<items.length; i++) {
+
+			for (var i = 0; i < items.length; i++) {
 				// TODO create URL?
 				if (!items[i].isAttachment() ||
-						items[i].attachmentLinkMode == Zotero.Attachments.LINK_MODE_LINKED_URL) {
+					items[i].attachmentLinkMode == Zotero.Attachments.LINK_MODE_LINKED_URL) {
 					continue;
 				}
-				
+
 				var file = items[i].getFile();
-				
+
 				// Determine if we need to copy multiple files for this item
 				// (web page snapshots)
 				if (items[i].attachmentLinkMode != Zotero.Attachments.LINK_MODE_LINKED_FILE) {
@@ -2902,7 +2831,7 @@ Zotero.ItemTreeView.fileDragDataProvider.prototype = {
 						}
 					}
 				}
-				
+
 				// Create folder if multiple files
 				if (numFiles > 1) {
 					var dirName = Zotero.Attachments.getFileBaseNameFromItem(items[i]);
@@ -2926,21 +2855,19 @@ Zotero.ItemTreeView.fileDragDataProvider.prototype = {
 								}
 							}
 						}
-						
+
 						parentDir.copyToFollowingLinks(destDir, newName ? newName : dirName);
-						
+
 						// Store nsIFile
 						if (useTemp) {
 							copiedFiles.push(copiedFile);
 						}
-					}
-					catch (e) {
+					} catch (e) {
 						if (e.name == 'NS_ERROR_FILE_ALREADY_EXISTS') {
 							// Keep track of items that already existed
 							existingItems.push(items[i].id);
 							existingFileNames.push(dirName);
-						}
-						else {
+						} else {
 							throw (e);
 						}
 					}
@@ -2967,43 +2894,40 @@ Zotero.ItemTreeView.fileDragDataProvider.prototype = {
 								}
 							}
 						}
-						
+
 						file.copyToFollowingLinks(destDir, newName ? newName : null);
-						
+
 						// Store nsIFile
 						if (useTemp) {
 							copiedFiles.push(copiedFile);
 						}
-					}
-					catch (e) {
+					} catch (e) {
 						if (e.name == 'NS_ERROR_FILE_ALREADY_EXISTS') {
 							existingItems.push(items[i].id);
 							existingFileNames.push(items[i].getFile().leafName);
-						}
-						else {
+						} else {
 							throw (e);
 						}
 					}
 				}
 			}
-			
+
 			// Files passed via data.value will be automatically moved
 			// from the temp directory to the destination directory
 			if (useTemp && copiedFiles.length) {
 				if (items.length > 1) {
 					data.value = destDir.QueryInterface(Components.interfaces.nsISupports);
-				}
-				else {
+				} else {
 					data.value = copiedFiles[0].QueryInterface(Components.interfaces.nsISupports);
 				}
 				dataLen.value = 4;
 			}
-			
+
 			if (notFoundNames.length || existingItems.length) {
 				var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 					.getService(Components.interfaces.nsIPromptService);
 			}
-			
+
 			// Display alert if files were not found
 			if (notFoundNames.length > 0) {
 				// On platforms that use a temporary directory, an alert here
@@ -3015,14 +2939,13 @@ Zotero.ItemTreeView.fileDragDataProvider.prototype = {
 						Zotero.log(msg, 'warning',
 							'chrome://zotero/content/xpcom/itemTreeView.js');
 					}
-				}
-				else {
+				} else {
 					promptService.alert(null, Zotero.getString('general.warning'),
 						Zotero.getString('dragAndDrop.filesNotFound') + "\n\n"
 						+ notFoundNames.join("\n"));
 				}
 			}
-			
+
 			// Display alert if existing files were skipped
 			if (existingItems.length > 0) {
 				promptService.alert(null, Zotero.getString('general.warning'),
@@ -3040,7 +2963,7 @@ Zotero.ItemTreeView.fileDragDataProvider.prototype = {
  */
 Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer) {
 	//Zotero.debug("Row is " + row + "; orient is " + orient);
-	
+
 	var dragData = Zotero.DragDrop.getDataFromDataTransfer(dataTransfer);
 	if (!dragData) {
 		Zotero.debug("No drag data");
@@ -3048,31 +2971,31 @@ Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer
 	}
 	var dataType = dragData.dataType;
 	var data = dragData.data;
-	
+
 	var collectionTreeRow = this.collectionTreeRow;
-	
+
 	if (row != -1 && orient == 0) {
 		var rowItem = this.getRow(row).ref; // the item we are dragging over
 	}
-	
+
 	if (dataType == 'zotero/item') {
 		let items = Zotero.Items.get(data);
-		
+
 		// Directly on a row
 		if (rowItem) {
 			var canDrop = false;
-			
+
 			for (let item of items) {
 				// If any regular items, disallow drop
 				if (item.isRegularItem()) {
 					return false;
 				}
-				
+
 				// Disallow cross-library child drag
 				if (item.libraryID != collectionTreeRow.ref.libraryID) {
 					return false;
 				}
-				
+
 				// Only allow dragging of notes and attachments
 				// that aren't already children of the item
 				if (item.parentItemID != rowItem.id) {
@@ -3081,7 +3004,7 @@ Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer
 			}
 			return canDrop;
 		}
-		
+
 		// In library, allow children to be dragged out of parent
 		else if (collectionTreeRow.isLibrary(true) || collectionTreeRow.isCollection()) {
 			for (let item of items) {
@@ -3089,13 +3012,13 @@ Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer
 				if (item.isTopLevelItem()) {
 					return false;
 				}
-				
+
 				// Don't allow web attachments to be dragged out of parents,
 				// but do allow PDFs for now so they can be recognized
 				if (item.isWebAttachment() && item.attachmentContentType != 'application/pdf') {
 					return false;
 				}
-				
+
 				// Don't allow children to be dragged within their own parents
 				var parentItemID = item.parentItemID;
 				var parentIndex = this._rowMap[parentItemID];
@@ -3123,7 +3046,7 @@ Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer
 						return false;
 					}
 				}
-				
+
 				// Disallow cross-library child drag
 				if (item.libraryID != collectionTreeRow.ref.libraryID) {
 					return false;
@@ -3132,8 +3055,7 @@ Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer
 			return true;
 		}
 		return false;
-	}
-	else if (dataType == "text/x-moz-url" || dataType == 'application/x-moz-file') {
+	} else if (dataType == "text/x-moz-url" || dataType == 'application/x-moz-file') {
 		// Disallow direct drop on a non-regular item (e.g. note)
 		if (rowItem) {
 			if (!rowItem.isRegularItem()) {
@@ -3144,10 +3066,10 @@ Zotero.ItemTreeView.prototype.canDropCheck = function (row, orient, dataTransfer
 		else if (collectionTreeRow.isSearch() || collectionTreeRow.isPublications()) {
 			return false;
 		}
-		
+
 		return true;
 	}
-	
+
 	return false;
 };
 
@@ -3158,7 +3080,7 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 	if (!this.canDrop(row, orient, dataTransfer)) {
 		return false;
 	}
-	
+
 	var dragData = Zotero.DragDrop.getDataFromDataTransfer(dataTransfer);
 	if (!dragData) {
 		Zotero.debug("No drag data");
@@ -3170,27 +3092,26 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 	var sourceCollectionTreeRow = Zotero.DragDrop.getDragSource(dataTransfer);
 	var collectionTreeRow = this.collectionTreeRow;
 	var targetLibraryID = collectionTreeRow.ref.libraryID;
-	
+
 	if (dataType == 'zotero/item') {
 		var ids = data;
 		var items = Zotero.Items.get(ids);
 		if (items.length < 1) {
 			return;
 		}
-		
+
 		// TEMP: This is always false for now, since cross-library drag
 		// is disallowed in canDropCheck()
 		//
 		// TODO: support items coming from different sources?
 		if (items[0].libraryID == targetLibraryID) {
 			var sameLibrary = true;
-		}
-		else {
+		} else {
 			var sameLibrary = false;
 		}
-		
+
 		var toMove = [];
-		
+
 		// Dropped directly on a row
 		if (orient == 0) {
 			// Set drop target as the parent item for dragged items
@@ -3198,21 +3119,20 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 			// canDrop() limits this to child items
 			var rowItem = this.getRow(row).ref; // the item we are dragging over
 			yield Zotero.DB.executeTransaction(function* () {
-				for (let i=0; i<items.length; i++) {
+				for (let i = 0; i < items.length; i++) {
 					let item = items[i];
 					item.parentID = rowItem.id;
 					yield item.save();
 				}
 			});
 		}
-		
+
 		// Dropped outside of a row
-		else
-		{
+		else {
 			// Remove from parent and make top-level
 			if (collectionTreeRow.isLibrary(true)) {
 				yield Zotero.DB.executeTransaction(function* () {
-					for (let i=0; i<items.length; i++) {
+					for (let i = 0; i < items.length; i++) {
 						let item = items[i];
 						if (!item.isRegularItem()) {
 							item.parentID = false;
@@ -3222,10 +3142,9 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 				});
 			}
 			// Add to collection
-			else
-			{
+			else {
 				yield Zotero.DB.executeTransaction(function* () {
-					for (let i=0; i<items.length; i++) {
+					for (let i = 0; i < items.length; i++) {
 						let item = items[i];
 						var source = item.isRegularItem() ? false : item.parentItemID;
 						// Top-level item
@@ -3233,8 +3152,7 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 							item.parentID = false;
 							item.addToCollection(collectionTreeRow.ref.id);
 							yield item.save();
-						}
-						else {
+						} else {
 							item.addToCollection(collectionTreeRow.ref.id);
 							yield item.save();
 						}
@@ -3243,7 +3161,7 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 				});
 			}
 		}
-		
+
 		// If moving, remove items from source collection
 		if (dropEffect == 'move' && toMove.length) {
 			if (!sameLibrary) {
@@ -3258,28 +3176,26 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 				}.bind(this));
 			}
 		}
-	}
-	else if (dataType == 'text/x-moz-url' || dataType == 'application/x-moz-file') {
+	} else if (dataType == 'text/x-moz-url' || dataType == 'application/x-moz-file') {
 		// Disallow drop into read-only libraries
 		if (!collectionTreeRow.editable) {
 			let win = Services.wm.getMostRecentWindow("navigator:browser");
 			win.ZoteroPane.displayCannotEditLibraryMessage();
 			return;
 		}
-		
+
 		var targetLibraryID = collectionTreeRow.ref.libraryID;
-		
+
 		var parentItemID = false;
 		var parentCollectionID = false;
-		
+
 		if (orient == 0) {
 			let treerow = this.getRow(row);
 			parentItemID = treerow.ref.id
-		}
-		else if (collectionTreeRow.isCollection()) {
+		} else if (collectionTreeRow.isCollection()) {
 			var parentCollectionID = collectionTreeRow.ref.id;
 		}
-		
+
 		let addedItems = [];
 		var notifierQueue = new Zotero.Notifier.Queue;
 		try {
@@ -3290,17 +3206,17 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 			let renameIfAllowedType = false;
 			let parentItem;
 			if (parentItemID
-					&& data.length == 1
-					&& Zotero.Attachments.shouldAutoRenameFile(dropEffect == 'link')) {
+				&& data.length == 1
+				&& Zotero.Attachments.shouldAutoRenameFile(dropEffect == 'link')) {
 				parentItem = Zotero.Items.get(parentItemID);
 				if (!parentItem.numNonHTMLFileAttachments()) {
 					renameIfAllowedType = true;
 				}
 			}
-			
-			for (var i=0; i<data.length; i++) {
+
+			for (var i = 0; i < data.length; i++) {
 				var file = data[i];
-				
+
 				if (dataType == 'text/x-moz-url') {
 					var url = data[i];
 					if (url.indexOf('file:///') == 0) {
@@ -3308,18 +3224,17 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 						// If dragging currently loaded page, only convert to
 						// file if not an HTML document
 						if (win.content.location.href != url ||
-								win.content.document.contentType != 'text/html') {
+							win.content.document.contentType != 'text/html') {
 							var nsIFPH = Components.classes["@mozilla.org/network/protocol;1?name=file"]
-									.getService(Components.interfaces.nsIFileProtocolHandler);
+								.getService(Components.interfaces.nsIFileProtocolHandler);
 							try {
 								var file = nsIFPH.getFileFromURLSpec(url);
-							}
-							catch (e) {
+							} catch (e) {
 								Zotero.debug(e);
 							}
 						}
 					}
-					
+
 					// Still string, so remote URL
 					if (typeof file == 'string') {
 						let item;
@@ -3338,8 +3253,7 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 									notifierQueue
 								}
 							});
-						}
-						else {
+						} else {
 							let win = Services.wm.getMostRecentWindow("navigator:browser");
 							item = yield win.ZoteroPane.addItemFromURL(url, 'temporaryPDFHack'); // TODO: don't do this
 						}
@@ -3348,20 +3262,20 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 						}
 						continue;
 					}
-					
+
 					// Otherwise file, so fall through
 				}
-				
+
 				file = file.path;
-				
+
 				// Rename file if it's an allowed type
 				let fileBaseName = false;
 				if (renameIfAllowedType) {
-					 fileBaseName = yield Zotero.Attachments.getRenamedFileBaseNameIfAllowedType(
+					fileBaseName = yield Zotero.Attachments.getRenamedFileBaseNameIfAllowedType(
 						parentItem, file
 					);
 				}
-				
+
 				let item;
 				if (dropEffect == 'link') {
 					// Rename linked file, with unique suffix if necessary
@@ -3378,11 +3292,10 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 							// Update path in case the name was changed to be unique
 							file = OS.Path.join(OS.Path.dirname(file), newName);
 						}
-					}
-					catch (e) {
+					} catch (e) {
 						Zotero.logError(e);
 					}
-					
+
 					item = yield Zotero.Attachments.linkFromFile({
 						file,
 						parentItemID,
@@ -3391,14 +3304,13 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 							notifierQueue
 						}
 					});
-				}
-				else {
+				} else {
 					if (file.endsWith(".lnk")) {
 						let win = Services.wm.getMostRecentWindow("navigator:browser");
 						win.ZoteroPane.displayCannotAddShortcutMessage(file);
 						continue;
 					}
-					
+
 					item = yield Zotero.Attachments.importFromFile({
 						file,
 						fileBaseName,
@@ -3413,22 +3325,20 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 					if (dragData.dropEffect == 'move') {
 						try {
 							yield OS.File.remove(file);
-						}
-						catch (e) {
+						} catch (e) {
 							Zotero.logError("Error deleting original file " + file + " after drag");
 						}
 					}
 				}
-				
+
 				if (item) {
 					addedItems.push(item);
 				}
 			}
-		}
-		finally {
+		} finally {
 			yield Zotero.Notifier.commit(notifierQueue);
 		}
-		
+
 		// Automatically retrieve metadata for PDFs
 		if (!parentItemID) {
 			Zotero.RecognizePDF.autoRecognizeItems(addedItems);
@@ -3443,25 +3353,31 @@ Zotero.ItemTreeView.prototype.drop = Zotero.Promise.coroutine(function* (row, or
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-Zotero.ItemTreeView.prototype.isSeparator = function(row) 						{ return false; }
-Zotero.ItemTreeView.prototype.isSelectable = function (row, col) { return true; }
-Zotero.ItemTreeView.prototype.getRowProperties = function(row, prop) {}
-Zotero.ItemTreeView.prototype.getColumnProperties = function(col, prop) {}
-Zotero.ItemTreeView.prototype.getCellProperties = function(row, col, prop) {
+Zotero.ItemTreeView.prototype.isSeparator = function (row) {
+	return false;
+}
+Zotero.ItemTreeView.prototype.isSelectable = function (row, col) {
+	return true;
+}
+Zotero.ItemTreeView.prototype.getRowProperties = function (row, prop) {
+}
+Zotero.ItemTreeView.prototype.getColumnProperties = function (col, prop) {
+}
+Zotero.ItemTreeView.prototype.getCellProperties = function (row, col, prop) {
 	var treeRow = this.getRow(row);
 	var itemID = treeRow.ref.id;
-	
+
 	var props = [];
-	
+
 	// Mark items not matching search as context rows, displayed in gray
 	if (this._searchMode && !this._searchItemIDs.has(itemID)) {
 		props.push("contextRow");
 	}
-	
+
 	// Mark hasAttachment column, which needs special image handling
 	if (col.id == 'zotero-items-column-hasAttachment') {
 		props.push("hasAttachment");
-		
+
 		// Don't show pie for open parent items, since we show it for the
 		// child item
 		if (!this.isContainer(row) || !this.isContainerOpen(row)) {
@@ -3470,27 +3386,25 @@ Zotero.ItemTreeView.prototype.getCellProperties = function(row, col, prop) {
 			if (num !== false) props.push("pie", "pie" + num);
 		}
 	}
-	
+
 	// Style unread items in feeds
 	if (treeRow.ref.isFeedItem && !treeRow.ref.isRead) props.push('unread');
-	
+
 	return props.join(" ");
 }
 
-Zotero.ItemTreeRow = function(ref, level, isOpen)
-{
+Zotero.ItemTreeRow = function (ref, level, isOpen) {
 	this.ref = ref;			//the item associated with this
 	this.level = level;
 	this.isOpen = isOpen;
 	this.id = ref.id;
 }
 
-Zotero.ItemTreeRow.prototype.getField = function(field, unformatted)
-{
+Zotero.ItemTreeRow.prototype.getField = function (field, unformatted) {
 	return this.ref.getField(field, unformatted, true);
 }
 
-Zotero.ItemTreeRow.prototype.numNotes = function() {
+Zotero.ItemTreeRow.prototype.numNotes = function () {
 	if (this.ref.isNote()) {
 		return 0;
 	}

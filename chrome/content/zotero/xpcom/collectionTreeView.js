@@ -23,13 +23,13 @@
     ***** END LICENSE BLOCK *****
 */
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///  CollectionTreeView
-///    -- handles the link between an individual tree and the data layer
-///    -- displays only collections, in a hierarchy (no items)
-///
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
+// /
+// /  CollectionTreeView
+// /    -- handles the link between an individual tree and the data layer
+// /    -- displays only collections, in a hierarchy (no items)
+// /
+// //////////////////////////////////////////////////////////////////////////////
 
 /*
  *  Constructor for the CollectionTreeView object
@@ -96,7 +96,8 @@ Zotero.CollectionTreeView.prototype.setTree = Zotero.Promise.coroutine(function*
 		if (!this._ownerDocument) {
 			try {
 				this._ownerDocument = treebox.treeBody.ownerDocument;
-			} catch (e) {
+			}
+			catch (e) {
 			}
 		}
 
@@ -112,8 +113,8 @@ Zotero.CollectionTreeView.prototype.setTree = Zotero.Promise.coroutine(function*
 			if (key == '+' && !(event.ctrlKey || event.altKey || event.metaKey)) {
 				this.expandLibrary(libraryID, true);
 			}
-			else if (key == '-' && !(event.shiftKey || event.ctrlKey ||
-				event.altKey || event.metaKey)) {
+			else if (key == '-' && !(event.shiftKey || event.ctrlKey
+				|| event.altKey || event.metaKey)) {
 				this.collapseLibrary(libraryID);
 			}
 		}.bind(this), false);
@@ -135,7 +136,8 @@ Zotero.CollectionTreeView.prototype.setTree = Zotero.Promise.coroutine(function*
 
 		yield this.runListeners('load');
 		this._initialized = true;
-	} catch (e) {
+	}
+	catch (e) {
 		Zotero.debug(e, 1);
 		Components.utils.reportError(e);
 		if (this.onError) {
@@ -166,7 +168,8 @@ Zotero.CollectionTreeView.prototype.refresh = Zotero.Promise.coroutine(function*
 
 	try {
 		this._containerState = JSON.parse(Zotero.Prefs.get("sourceList.persist"));
-	} catch (e) {
+	}
+	catch (e) {
 		this._containerState = {};
 	}
 
@@ -300,7 +303,7 @@ Zotero.CollectionTreeView.prototype.selectWait = Zotero.Promise.method(function 
 	if (this.selection.currentIndex == row) {
 		return;
 	}
-	;
+	
 	var promise = this.waitForSelect();
 	this.selection.select(row);
 	return promise;
@@ -562,47 +565,47 @@ Zotero.CollectionTreeView.prototype._addSortedRow = Zotero.Promise.coroutine(fun
 			// Get all collections at the same level that don't have a different parent
 			startRow++;
 			loop:
-				for (let i = startRow; i < this.rowCount; i++) {
-					let treeRow = this.getRow(i);
-					beforeRow = i;
+			for (let i = startRow; i < this.rowCount; i++) {
+				let treeRow = this.getRow(i);
+				beforeRow = i;
 
-					// Since collections come first, if we reach something that's not a collection,
-					// stop
-					if (!treeRow.isCollection()) {
-						break;
-					}
+				// Since collections come first, if we reach something that's not a collection,
+				// stop
+				if (!treeRow.isCollection()) {
+					break;
+				}
 
-					let rowLevel = this.getLevel(i);
-					if (rowLevel < level) {
-						break;
-					}
-					else {
-						// Fast forward through subcollections
-						while (rowLevel > level) {
-							beforeRow = ++i;
-							if (i == this.rowCount || !this.getRow(i)
+				let rowLevel = this.getLevel(i);
+				if (rowLevel < level) {
+					break;
+				}
+				else {
+					// Fast forward through subcollections
+					while (rowLevel > level) {
+						beforeRow = ++i;
+						if (i == this.rowCount || !this.getRow(i)
 								.isCollection()) {
-								break loop;
-							}
-							treeRow = this.getRow(i);
-							rowLevel = this.getLevel(i);
-							// If going from lower level to a row higher than the target level, we found
-							// our place:
-							//
-							// - 1
-							//   - 3
-							//     - 4
-							// - 2 <<<< 5, a sibling of 3, goes above here
-							if (rowLevel < level) {
-								break loop;
-							}
+							break loop;
 						}
+						treeRow = this.getRow(i);
+						rowLevel = this.getLevel(i);
+						// If going from lower level to a row higher than the target level, we found
+						// our place:
+						//
+						// - 1
+						//   - 3
+						//     - 4
+						// - 2 <<<< 5, a sibling of 3, goes above here
+						if (rowLevel < level) {
+							break loop;
+						}
+					}
 
-						if (Zotero.localeCompare(treeRow.ref.name, collection.name) > 0) {
-							break;
-						}
+					if (Zotero.localeCompare(treeRow.ref.name, collection.name) > 0) {
+						break;
 					}
 				}
+			}
 		}
 		this._addRow(
 			new Zotero.CollectionTreeRow(this, 'collection', collection, level),
@@ -707,12 +710,12 @@ Zotero.CollectionTreeView.prototype.unregister = function () {
 };
 
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///  nsITreeView functions
-///  http://www.xulplanet.com/references/xpcomref/ifaces/nsITreeView.html
-///
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
+// /
+// /  nsITreeView functions
+// /  http://www.xulplanet.com/references/xpcomref/ifaces/nsITreeView.html
+// /
+// //////////////////////////////////////////////////////////////////////////////
 
 Zotero.CollectionTreeView.prototype.getCellText = function (row, column) {
 	var obj = this.getRow(row);
@@ -720,8 +723,7 @@ Zotero.CollectionTreeView.prototype.getCellText = function (row, column) {
 	if (column.id == 'zotero-collections-name-column') {
 		return obj.getName();
 	}
-	else
-		return "";
+	else return "";
 };
 
 Zotero.CollectionTreeView.prototype.getImageSrc = function (row, col) {
@@ -834,9 +836,7 @@ Zotero.CollectionTreeView.prototype.isContainerEmpty = function (row) {
 Zotero.CollectionTreeView.prototype.getParentIndex = function (row) {
 	var thisLevel = this.getLevel(row);
 	if (thisLevel == 0) return -1;
-	for (var i = row - 1; i >= 0; i--)
-		if (this.getLevel(i) < thisLevel)
-			return i;
+	for (var i = row - 1; i >= 0; i--) if (this.getLevel(i) < thisLevel) return i;
 	return -1;
 };
 
@@ -1002,7 +1002,7 @@ Zotero.CollectionTreeView.prototype.collapseLibrary = function (libraryID) {
 	// We have to manually delete closed rows from the container state object, because otherwise
 	// _saveOpenStates() wouldn't see any of the rows under the library (since the library is now
 	// collapsed) and they'd remain as open in the persisted object.
-	closed.forEach(id => {
+	closed.forEach((id) => {
 		delete this._containerState[id];
 	});
 	this._saveOpenStates();
@@ -1044,11 +1044,11 @@ Zotero.CollectionTreeView.prototype.expandToCollection = Zotero.Promise.coroutin
 });
 
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///  Additional functions for managing data in the tree
-///
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
+// /
+// /  Additional functions for managing data in the tree
+// /
+// //////////////////////////////////////////////////////////////////////////////
 Zotero.CollectionTreeView.prototype.selectByID = Zotero.Promise.coroutine(function* (id) {
 	var type = id[0];
 	id = parseInt(('' + id).substr(1));
@@ -1240,10 +1240,9 @@ Zotero.CollectionTreeView.prototype.selectItems = async function (itemIDs, inLib
  *  Delete the selection
  */
 Zotero.CollectionTreeView.prototype.deleteSelection = Zotero.Promise.coroutine(function* (deleteItems) {
-	if (this.selection.count == 0)
-		return;
+	if (this.selection.count == 0) return;
 
-	//collapse open collections
+	// collapse open collections
 	for (let i = 0; i < this.rowCount; i++) {
 		if (this.selection.isSelected(i) && this.isContainer(i)) {
 			this._closeContainer(i);
@@ -1251,22 +1250,20 @@ Zotero.CollectionTreeView.prototype.deleteSelection = Zotero.Promise.coroutine(f
 	}
 	this._refreshRowMap();
 
-	//create an array of collections
+	// create an array of collections
 	var rows = new Array();
 	var start = new Object();
 	var end = new Object();
 	for (var i = 0, len = this.selection.getRangeCount(); i < len; i++) {
 		this.selection.getRangeAt(i, start, end);
-		for (var j = start.value; j <= end.value; j++)
-			if (!this.getRow(j)
-				.isLibrary())
-				rows.push(j);
+		for (var j = start.value; j <= end.value; j++) if (!this.getRow(j)
+				.isLibrary()) rows.push(j);
 	}
 
-	//iterate and erase...
-	//this._treebox.beginUpdateBatch();
+	// iterate and erase...
+	// this._treebox.beginUpdateBatch();
 	for (var i = 0; i < rows.length; i++) {
-		//erase collection from DB:
+		// erase collection from DB:
 		var treeRow = this.getRow(rows[i] - i);
 		if (treeRow.isCollection() || treeRow.isFeed()) {
 			yield treeRow.ref.eraseTx({ deleteItems });
@@ -1278,7 +1275,7 @@ Zotero.CollectionTreeView.prototype.deleteSelection = Zotero.Promise.coroutine(f
 			yield Zotero.Searches.erase(treeRow.ref.id);
 		}
 	}
-	//this._treebox.endUpdateBatch();
+	// this._treebox.endUpdateBatch();
 });
 
 
@@ -1287,7 +1284,7 @@ Zotero.CollectionTreeView.prototype.selectAfterRowRemoval = function (row) {
 	if (row >= this.rowCount) {
 		row = this.rowCount - 1;
 	}
-	;
+	
 
 	// Make sure the selection doesn't land on a separator (e.g. deleting last feed)
 	while (row >= 0 && !this.isSelectable(row)) {
@@ -1345,8 +1342,8 @@ Zotero.CollectionTreeView.prototype._expandRow = Zotero.Promise.coroutine(functi
 
 	// If not a manual open and either the library is set to be collapsed or this is a collection that isn't explicitly opened,
 	// set the initial state to closed
-	if (!forceOpen &&
-		(this._containerState[treeRow.id] === false
+	if (!forceOpen
+		&& (this._containerState[treeRow.id] === false
 			|| (isCollection && !this._containerState[treeRow.id]))) {
 		rows[row].isOpen = false;
 		return 0;
@@ -1572,12 +1569,12 @@ Zotero.CollectionTreeView.prototype._saveOpenStates = Zotero.Promise.coroutine(f
 });
 
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///  Command Controller:
-///		for Select All, etc.
-///
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
+// /
+// /  Command Controller:
+// /		for Select All, etc.
+// /
+// //////////////////////////////////////////////////////////////////////////////
 
 Zotero.CollectionTreeCommandController = function (tree) {
 	this.tree = tree;
@@ -1595,13 +1592,13 @@ Zotero.CollectionTreeCommandController.prototype.doCommand = function (cmd) {
 Zotero.CollectionTreeCommandController.prototype.onEvent = function (evt) {
 };
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///  Drag-and-drop functions:
-///		canDrop() and drop() are for nsITreeView
-///		onDragStart() and onDrop() are for HTML 5 Drag and Drop
-///
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
+// /
+// /  Drag-and-drop functions:
+// /		canDrop() and drop() are for nsITreeView
+// /		onDragStart() and onDrop() are for HTML 5 Drag and Drop
+// /
+// //////////////////////////////////////////////////////////////////////////////
 
 
 /*
@@ -1649,7 +1646,7 @@ Zotero.CollectionTreeView.prototype.canDropCheck = function (row, orient, dataTr
 	}
 	// Directly on a row
 	else if (orient == 0) {
-		var treeRow = this.getRow(row); //the collection we are dragging over
+		var treeRow = this.getRow(row); // the collection we are dragging over
 
 		if (dataType == 'zotero/item' && treeRow.isBucket()) {
 			return true;
@@ -1804,7 +1801,7 @@ Zotero.CollectionTreeView.prototype.canDropCheck = function (row, orient, dataTr
  * Called by treechildren.drop()
  */
 Zotero.CollectionTreeView.prototype.canDropCheckAsync = Zotero.Promise.coroutine(function* (row, orient, dataTransfer) {
-	//Zotero.debug("Row is " + row + "; orient is " + orient);
+	// Zotero.debug("Row is " + row + "; orient is " + orient);
 
 	var dragData = Zotero.DragDrop.getDataFromDataTransfer(dataTransfer);
 	if (!dragData) {
@@ -1815,7 +1812,7 @@ Zotero.CollectionTreeView.prototype.canDropCheckAsync = Zotero.Promise.coroutine
 	var data = dragData.data;
 
 	if (orient == 0) {
-		var treeRow = this.getRow(row); //the collection we are dragging over
+		var treeRow = this.getRow(row); // the collection we are dragging over
 
 		if (dataType == 'zotero/item' && treeRow.isBucket()) {
 			return true;
@@ -2050,12 +2047,10 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 						continue;
 					}
 				}
-				else {
-					if (!options.childFileAttachments
+				else if (!options.childFileAttachments
 						|| (!targetTreeRow.filesEditable && !targetTreeRow.isPublications())) {
-						Zotero.debug("Skipping child file attachment on drag");
-						continue;
-					}
+					Zotero.debug("Skipping child file attachment on drag");
+					continue;
 				}
 				yield Zotero.Attachments.copyAttachmentToLibrary(attachment, targetLibraryID, newItemID);
 			}
@@ -2275,7 +2270,7 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 			yield Zotero.DB.executeTransaction(function* () {
 				let collection = yield Zotero.Collections.getAsync(targetCollectionID);
 				yield collection.addItems(ids);
-			}.bind(this));
+			});
 		}
 		else if (targetTreeRow.isPublications()) {
 			yield Zotero.Items.addToPublications(newItems, copyOptions);
@@ -2291,7 +2286,7 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 			}
 			yield Zotero.DB.executeTransaction(function* () {
 				yield sourceTreeRow.ref.removeItems(toMove);
-			}.bind(this));
+			});
 		}
 	}
 	else if (dataType == 'text/x-moz-url' || dataType == 'application/x-moz-file') {
@@ -2315,13 +2310,14 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 					let win = Services.wm.getMostRecentWindow("navigator:browser");
 					// If dragging currently loaded page, only convert to
 					// file if not an HTML document
-					if (win.content.location.href != url ||
-						win.content.document.contentType != 'text/html') {
+					if (win.content.location.href != url
+						|| win.content.document.contentType != 'text/html') {
 						var nsIFPH = Components.classes["@mozilla.org/network/protocol;1?name=file"]
 							.getService(Components.interfaces.nsIFileProtocolHandler);
 						try {
 							var file = nsIFPH.getFileFromURLSpec(url);
-						} catch (e) {
+						}
+						catch (e) {
 							Zotero.debug(e);
 						}
 					}
@@ -2353,7 +2349,8 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 				if (dragData.dropEffect == 'move') {
 					try {
 						file.remove(false);
-					} catch (e) {
+					}
+					catch (e) {
 						Components.utils.reportError("Error deleting original file " + file.path + " after drag");
 					}
 				}
@@ -2368,11 +2365,11 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 });
 
 
-////////////////////////////////////////////////////////////////////////////////
-///
-///  Functions for nsITreeView that we have to stub out.
-///
-////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////
+// /
+// /  Functions for nsITreeView that we have to stub out.
+// /
+// //////////////////////////////////////////////////////////////////////////////
 
 Zotero.CollectionTreeView.prototype.isSorted = function () {
 	return false;
@@ -2409,7 +2406,6 @@ Zotero.CollectionTreeView.prototype.getCellProperties = function (row, col, prop
 	}
 
 	return props.join(" ");
-
 };
 Zotero.CollectionTreeView.prototype.isSeparator = function (index) {
 	var source = this.getRow(index);
@@ -2426,12 +2422,12 @@ Zotero.CollectionTreeView.prototype.cycleHeader = function (column) {
 
 
 Zotero.CollectionTreeCache = {
-	"lastTreeRow": null,
-	"lastTempTable": null,
-	"lastSearch": null,
-	"lastResults": null,
+	lastTreeRow: null,
+	lastTempTable: null,
+	lastSearch: null,
+	lastResults: null,
 
-	"clear": function () {
+	clear: function () {
 		this.lastTreeRow = null;
 		this.lastSearch = null;
 		if (this.lastTempTable) {

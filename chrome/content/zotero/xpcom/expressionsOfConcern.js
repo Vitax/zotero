@@ -48,12 +48,13 @@ Zotero.ExpressionsOfConcern = {
 		const queryString = "CREATE TABLE IF NOT EXISTS expressionsOfConcern (itemID INTEGER PRIMARY KEY, data text, FOREIGN KEY (itemID) REFERENCES items(itemID)on delete cascade )";
 		await Zotero.DB.queryAsync(queryString);
 
-        try {
-            const queryString = "ALTER TABLE expressionsOfConcern ADD COLUMN flag INT DEFAULT 0";
-            await Zotero.DB.queryAsync(queryString);
-        } catch (error) {
-            Zotero.debug("Error while altering ExpressionsOfConcern table: " + error.toString());
-        }
+		try {
+			const queryString = "ALTER TABLE expressionsOfConcern ADD COLUMN flag INT DEFAULT 0";
+			await Zotero.DB.queryAsync(queryString);
+		}
+		catch (error) {
+			Zotero.debug("Error while altering ExpressionsOfConcern table: " + error.toString());
+		}
 
 		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionOfConcern', 20);
 
@@ -101,14 +102,15 @@ Zotero.ExpressionsOfConcern = {
 		this._librariesWithExpressionsOfConcern = new Set();
 	},
 
-    _handlePrefChange: async function () {
-        if (Zotero.Prefs.get('expressionsOfConcern.enabled')) {
-            await this.init();
-        } else {
-            if (this._notifierID) {
-                Zotero.Notifier.unregisterObserver(this._notifierID);
-                delete this._notifierID;
-            }
+	_handlePrefChange: async function () {
+		if (Zotero.Prefs.get('expressionsOfConcern.enabled')) {
+			await this.init();
+		}
+		else {
+			if (this._notifierID) {
+				Zotero.Notifier.unregisterObserver(this._notifierID);
+				delete this._notifierID;
+			}
 
             await this._removeAllEntries();
             this._resetState();
@@ -312,34 +314,44 @@ Zotero.ExpressionsOfConcern = {
 
 		if (current) {
 			this._librariesWithExpressionsOfConcern.add(libraryID);
-		} else {
+		}
+		else {
 			this._librariesWithExpressionsOfConcern.delete(libraryID);
 		}
 	},
 
-	_showAlert: async function (itemIDs) {
-		// Don't show banner for items in the trash
+	/**
+	 *
+	 * @param expressionsOfConcernItem {[{itemID: string, value: string}]}
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	_showAlert: async function (expressionsOfConcernItem) {
+	// Don't show banner for items in the trash
+		let itemIDs = expressionsOfConcernItem.map(expressionOfConcern => expressionOfConcern.itemID);
 		let items = await Zotero.Items.getAsync(itemIDs);
 		items = items.filter(item => !item.deleted);
 		if (!items.length) {
 			return;
 		}
+
 		Zotero.Prefs.set('epxressionsOfConcern.recentItems', JSON.stringify(items.map(item => item.id)));
 		let zoteroPane = Zotero.getActiveZoteroPane();
 		if (zoteroPane) {
 			await zoteroPane.showExpressionsOfConcernBanner();
 		}
+		Zotero.debug('Should display a banner ?!!!!!')
 	},
 
 
 	/**
-	 *
-	 * @param action
-	 * @param type
-	 * @param ids
-	 * @param extraData
-	 * @returns {Promise<void>}
-	 */
+ *
+ * @param action
+ * @param type
+ * @param ids
+ * @param extraData
+ * @returns {Promise<void>}
+ */
 	notify: async function (action, type, ids, extraData) {
 		if (!this._initialized) {
 			return;
@@ -354,7 +366,6 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		if (action === "add") {
-			this._showAlert(ids)
 			for (let itemID of ids) {
 				let item = await this.lookupExpressionsOfConcernItem(itemID);
 				if (!item) {
@@ -366,7 +377,6 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		if (action === "modify") {
-			this._showAlert(ids)
 			for (let itemID of ids) {
 				let item = Zotero.Items.get(itemID);
 				let expressionOfConcern = await this.lookupExpressionsOfConcernItem(itemID);
@@ -380,7 +390,8 @@ Zotero.ExpressionsOfConcern = {
 
 				if (flag !== undefined && (flag === this.FLAG.HIDDEN && item.deleted)) {
 					this._removeEntryFromExpressionsOfConcernLibrary(itemID, item.libraryID);
-				} else {
+				}
+				else {
 					this._addEntryToExpressionsOfConcernLibrary(itemID, item.libraryID);
 				}
 			}
@@ -391,14 +402,13 @@ Zotero.ExpressionsOfConcern = {
 				this._removeEntry(itemID, extraData[itemID].libraryID);
 			}
 		}
-	}
-	,
+	},
 
 	/**
-	 *
-	 * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
-	 * @returns {boolean}
-	 */
+ *
+ * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
+ * @returns {boolean}
+ */
 	hasExpressionsOfConcern: function (item) {
 		let expressionOfConcern = this._expressionsOfConcern.has(item.id);
 
@@ -406,104 +416,105 @@ Zotero.ExpressionsOfConcern = {
             return false;
         }
 
-        return true;
-    },
+		return true;
+	},
 
 	/**
-	 * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
-	 * Query is not working
-	 * @returns {Promise<void>}
-	 */
+ * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
+ * Query is not working
+ * @returns {Promise<void>}
+ */
 	lookupExpressionsOfConcernItems: async function () {
 		const queryString = `SELECT items.itemID, itemDataValues.value
-                             FROM items
-                                      LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
-                                      LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
-                                      LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
-																   itemAttachments.itemID = itemData.itemID
-                                      LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
-                             WHERE itemTypeFields.fieldID = 1
-                               AND itemAttachments.contentType <> 'application/pdf'`;
-        const filteredItems = await Zotero.DB.queryAsync(queryString);
-        return filteredItems;
-    },
+						 FROM items
+								  LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
+								  LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
+								  LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
+															   itemAttachments.itemID = itemData.itemID
+								  LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
+						 WHERE itemTypeFields.fieldID = 1
+						   AND itemAttachments.contentType <> 'application/pdf'`;
+		const filteredItems = await Zotero.DB.queryAsync(queryString);
+		return filteredItems;
+	},
 
 	/**
-	 * Returns the most recent item which has a url from the DB
-	 * @returns {Promise<{itemID: string, value: string}>}
-	 */
+ * Returns the most recent item which has a url from the DB
+ * @returns {Promise<{itemID: string, value: string}>}
+ */
 	lookupExpressionsOfConcernItem: async function (itemID) {
 		const queryString = `SELECT items.itemID, itemDataValues.value
-                             FROM items
-                                      LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
-                                      LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
-                                      LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
-                                                                   itemAttachments.itemID = itemData.itemID
-                                      LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
-                             WHERE itemTypeFields.fieldID = 1
-                               AND itemAttachments.contentType <> 'application/pdf'
-                               AND items.itemID = ?`;
+						 FROM items
+								  LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
+								  LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
+								  LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
+															   itemAttachments.itemID = itemData.itemID
+								  LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
+						 WHERE itemTypeFields.fieldID = 1
+						   AND itemAttachments.contentType <> 'application/pdf'
+						   AND items.itemID = ?`;
 		return await Zotero.DB.rowQueryAsync(queryString, [itemID]);
-	}
-	,
+	},
 
 	/**
-	 *
-	 * @param items {[{itemID: string, value: string}]}
-	 * @returns {Promise<Object>}
-	 */
+ *
+ * @param items {[{itemID: string, value: string}]}
+ * @returns {Promise<Object>}
+ */
 	scrapeExpressionsOfConcern: async function (items) {
 		let promises = [];
 		for (let item of items) {
 			promises.push(Zotero.HTTP.request("GET", item.value, {})
-				.then((response) => {
-					let htmlDoc = response.responseXML;
+			.then((response) => {
+				let htmlDoc = response.responseXML;
 
-                    if (!htmlDoc) {
-                        var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
-                            .createInstance(Components.interfaces.nsIDOMParser);
-                        htmlDoc = parser.parseFromString(response.responseText, "text/html");
-                    }
+				if (!htmlDoc) {
+					var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+						.createInstance(Components.interfaces.nsIDOMParser);
+					htmlDoc = parser.parseFromString(response.responseText, "text/html");
+				}
 
-                    let mainContent = htmlDoc.getElementById('maincontent');
-                    let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
+				let mainContent = htmlDoc.getElementById('maincontent');
+				let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
 
-                    let headers = Zotero.Utilities.xpath(errorList, 'h3');
-                    let links = [];
-                    let notices = [];
-                    if (this.containsExpressionsOfConcern(headers)) {
-                        for (let ul of errorList) {
-                            let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
+				let headers = Zotero.Utilities.xpath(errorList, 'h3');
+				let links = [];
+				let notices = [];
+				if (this.containsExpressionsOfConcern(headers)) {
+					for (let ul of errorList) {
+						let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
 
-                            for (let i = 0; i < linkList.length; i++) {
-                                let ref = linkList[i].getAttribute('ref');
-                                if (ref.includes('type=expressionofconcernin')) {
-                                    notices.push(linkList[i].innerHTML);
-                                    let expressionOfConcernLink = linkList[i].href;
+						for (let i = 0; i < linkList.length; i++) {
+							let ref = linkList[i].getAttribute('ref');
+							if (ref.includes('type=expressionofconcernin')) {
+								notices.push(linkList[i].innerHTML);
+								let expressionOfConcernLink = linkList[i].href;
 
-									if (!expressionOfConcernLink.includes('http')) {
-										expressionOfConcernLink = this._getHostname(item.value) + linkList[i].href;
-									}
+								if (!expressionOfConcernLink.includes('http')) {
+									expressionOfConcernLink = this._getHostname(item.value) + linkList[i].href;
+								}
 
-                                    links.push(expressionOfConcernLink);
-                                }
-                            }
-                        }
+								links.push(expressionOfConcernLink);
+							}
+						}
+					}
 
-                        let data = {
-                            links: links,
-                            notices: notices
-                        };
-                        this._addEntry(item.itemID, data);
-                    }
-                }).catch((error) => {
-                    Zotero.debug("Error while retrieving document: " + error + "\n\n");
-                })
-            );
-        }
+					let data = {
+						links: links,
+						notices: notices
+					};
 
-        Zotero.Promise.all(promises);
-    },
+					this._addEntry(item.itemID, data);
+				}
+			}).catch((error) => {
+				Zotero.debug("Error while retrieving document: " + error + "\n\n");
+			})
+			);
+		}
+
+		this._showAlert(items);
+		Zotero.Promise.all(promises);
+	},
 
     /**
      * Simple function to check if an item contains expression of concern information
@@ -517,6 +528,7 @@ Zotero.ExpressionsOfConcern = {
             }
         }
 
-        return false;
-    }
+		return false;
+	}
 };
+

@@ -53,7 +53,8 @@ Zotero.Retractions = {
 		await Zotero.DB.queryAsync("CREATE TABLE IF NOT EXISTS retractedItems (\n	itemID INTEGER PRIMARY KEY,\n	data TEXT,\n	FOREIGN KEY (itemID) REFERENCES items(itemID) ON DELETE CASCADE\n);");
 		try {
 			await Zotero.DB.queryAsync("ALTER TABLE retractedItems ADD COLUMN flag INT DEFAULT 0");
-		} catch (e) {
+		}
+		catch (e) {
 		}
 
 		// Load mappings of keys (DOI hashes and PMIDs) to items and vice versa and register for
@@ -64,7 +65,8 @@ Zotero.Retractions = {
 		// Load in the cached prefix list that we check new items against
 		try {
 			await this._loadCacheFile();
-		} catch (e) {
+		}
+		catch (e) {
 			Zotero.logError("Error loading retractions cache file");
 			Zotero.logError(e);
 		}
@@ -213,7 +215,7 @@ Zotero.Retractions = {
 		// Check all possible values
 		var keyIndexes = new Map();
 		var prefixStringsToCheck = [];
-		for (let {type, value, index} of valuesToCheck) {
+		for (let { type, value, index } of valuesToCheck) {
 			// See if we've already cached a result for this key
 			let key = this._valueToKey(type, value);
 			let cachedResult = keyCache[type].get(key);
@@ -315,7 +317,8 @@ Zotero.Retractions = {
 
 		if (current) {
 			this._librariesWithRetractions.add(libraryID);
-		} else {
+		}
+		else {
 			this._librariesWithRetractions.delete(libraryID);
 		}
 	},
@@ -340,7 +343,8 @@ Zotero.Retractions = {
 		}
 		try {
 			data = JSON.parse(data);
-		} catch (e) {
+		}
+		catch (e) {
 			Zotero.logError(e);
 			return false;
 		}
@@ -348,10 +352,12 @@ Zotero.Retractions = {
 		try {
 			if (data.date) {
 				data.date = Zotero.Date.sqlToDate(data.date);
-			} else {
+			}
+			else {
 				data.date = null;
 			}
-		} catch (e) {
+		}
+		catch (e) {
 			Zotero.logError("Error parsing retraction date: " + data.date);
 			data.date = null;
 		}
@@ -389,7 +395,8 @@ Zotero.Retractions = {
 			for (let id of ids) {
 				this._updateItem(Zotero.Items.get(id));
 			}
-		} else if (action == 'modify') {
+		}
+		else if (action == 'modify') {
 			for (let id of ids) {
 				let item = Zotero.Items.get(id);
 				for (let type of this.TYPE_NAMES) {
@@ -421,12 +428,14 @@ Zotero.Retractions = {
 				if (flag !== undefined) {
 					if (item.deleted || flag == this.FLAG_HIDDEN) {
 						await this._removeLibraryRetractedItem(item.libraryID, item.id);
-					} else {
+					}
+					else {
 						await this._addLibraryRetractedItem(item.libraryID, item.id);
 					}
 				}
 			}
-		} else if (action == 'delete') {
+		}
+		else if (action == 'delete') {
 			for (let id of ids) {
 				await this._removeEntry(id, extraData[id].libraryID);
 			}
@@ -460,7 +469,8 @@ Zotero.Retractions = {
 		try {
 			let possibleMatches = await this._downloadPossibleMatches(prefixStrings);
 			addedItems = await this._addPossibleMatches(possibleMatches);
-		} catch (e) {
+		}
+		catch (e) {
 			// Add back to queue on failure
 			for (let item of items) {
 				this._queuedItems.add(item);
@@ -519,7 +529,8 @@ Zotero.Retractions = {
 			let prefix = prefixStr.substr(1);
 			if (type == this.TYPE_DOI && !doiPrefixLength) {
 				doiPrefixLength = prefix.length;
-			} else if (type == this.TYPE_PMID) {
+			}
+			else if (type == this.TYPE_PMID) {
 				pmidPrefixLength = Math.max(pmidPrefixLength, prefix.length);
 			}
 		}
@@ -550,7 +561,8 @@ Zotero.Retractions = {
 
 			let possibleMatches = await this._downloadPossibleMatches([...prefixesToSend]);
 			await this._addPossibleMatches(possibleMatches, true);
-		} else {
+		}
+		else {
 			Zotero.debug("No possible retractions");
 			await this._addPossibleMatches([], true);
 		}
@@ -943,7 +955,8 @@ Zotero.Retractions = {
 		try {
 			await Zotero.File.putContentsAsync(cacheFile, JSON.stringify(cacheJSON));
 			this._processCacheData(cacheJSON);
-		} catch (e) {
+		}
+		catch (e) {
 			Zotero.logError("Error caching retractions data: " + e);
 		}
 	},
@@ -1074,6 +1087,6 @@ Zotero.Retractions = {
 	},
 
 	_fixedResults: [
-		{date: "1977-04-15", pmid: 993, retractionPMID: 195582, reasons: ["Results Not Reproducible"], urls: []}
+		{ date: "1977-04-15", pmid: 993, retractionPMID: 195582, reasons: ["Results Not Reproducible"], urls: [] }
 	]
 };
