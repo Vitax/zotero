@@ -4927,6 +4927,7 @@ var ZoteroPane = new function () {
 
 		// try parsing the pref first
 		try {
+			Zotero.debug('items inside of the recent items prefs: ' + Zotero.Prefs.get('expressionsOfConcern.recentItems'));
 			innerItems = JSON.parse(Zotero.Prefs.get('expressionsOfConcern.recentItems'));
 		}
 		catch (error) {
@@ -4934,11 +4935,6 @@ var ZoteroPane = new function () {
 			Zotero.Prefs.clear('expressionsOfConcern.recentItems');
 			return;
 		}
-		if (!innerItems.length) {
-			return;
-		}
-
-		innerItems = await Zotero.Items.getAsync(items);
 		if (!innerItems.length) {
 			return;
 		}
@@ -4956,7 +4952,7 @@ var ZoteroPane = new function () {
 		link.onclick = async function () {
 			this.hideExpressionsOfConcernBanner();
 			if (innerItems.length === 1) {
-				await this.selectItem(innerItems[0].id);
+				await this.selectItem(innerItems[0]);
 			}
 			else {
 				let libraryID = this.getSelectedLibraryID();

@@ -331,16 +331,17 @@ Zotero.ExpressionsOfConcern = {
 		let itemIDs = expressionsOfConcernItem.map(expressionOfConcern => expressionOfConcern.itemID);
 		let items = await Zotero.Items.getAsync(itemIDs);
 		items = items.filter(item => !item.deleted);
+
 		if (!items.length) {
 			return;
 		}
 
-		Zotero.Prefs.set('epxressionsOfConcern.recentItems', JSON.stringify(items.map(item => item.id)));
+		Zotero.Prefs.set('epxressionsOfConcern.recentItems', JSON.stringify(itemIDs));
+
 		let zoteroPane = Zotero.getActiveZoteroPane();
 		if (zoteroPane) {
 			await zoteroPane.showExpressionsOfConcernBanner();
 		}
-		Zotero.debug('Should display a banner ?!!!!!')
 	},
 
 
@@ -359,7 +360,7 @@ Zotero.ExpressionsOfConcern = {
 
 		if (type === "group") {
 			if (action === 'delete') {
-				for (let libraryID in ids) {
+				for (let libraryID of ids) {
 					this._resetExpressionsOfConcernLibrary(libraryID);
 				}
 			}
@@ -475,6 +476,10 @@ Zotero.ExpressionsOfConcern = {
 				}
 
 				let mainContent = htmlDoc.getElementById('maincontent');
+				if(!mainContent) {
+					return;
+				}
+
 				let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
 
 				let headers = Zotero.Utilities.xpath(errorList, 'h3');
@@ -484,14 +489,14 @@ Zotero.ExpressionsOfConcern = {
 					for (let ul of errorList) {
 						let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
 
-						for (let i = 0; i < linkList.length; i++) {
-							let ref = linkList[i].getAttribute('ref');
-							if (ref.includes('type=expressionofconcernin')) {
-								notices.push(linkList[i].innerHTML);
-								let expressionOfConcernLink = linkList[i].href;
+						for (let link of linkList) {
+							let ref = link.getAttribute('ref');
+							if (ref.includes('type=expressionofconcernin') || ref.includes('type=expressionofconcernfor')) {
+								notices.push(link.innerHTML);
+								let expressionOfConcernLink = link.href;
 
 								if (!expressionOfConcernLink.includes('http')) {
-									expressionOfConcernLink = this._getHostname(item.value) + linkList[i].href;
+									expressionOfConcernLink = this._getHostname(item.value) + link.href;
 								}
 
 								links.push(expressionOfConcernLink);
@@ -512,21 +517,25 @@ Zotero.ExpressionsOfConcern = {
 			);
 		}
 
-		this._showAlert(items);
 		Zotero.Promise.all(promises);
+		this._showAlert(items);
 	},
 
-    /**
-     * Simple function to check if an item contains expression of concern information
-     * @param headerList {HTMLElement} the div which contains the errors in the html dom
-     * @returns {boolean} returns true of expressions of concerns are included in the item
-     */
-    containsExpressionsOfConcern: function (headerList) {
-        for (let header of headerList) {
-            if (header.innerHTML.toLowerCase().includes('expression of concern in')) {
-                return true;
-            }
-        }
+	/**
+	 * Simple function to check if an item contains expression of concern information
+	 * @param headerList {HTMLElement} the div which contains the errors in the html dom
+	 * @returns {boolean} returns true of expressions of concerns are included in the item
+	 */
+	containsExpressionsOfConcern: function (headerList) {
+		for (let header of headerList) {
+			if (header.innerHTML.toLowerCase().includes('expression of concern in')) {
+				return true;
+			}
+
+			if (header.innerHTML.toLowerCase().includes('expression of concern for')) {
+				return true;
+			}
+		}
 
 		return false;
 	}
