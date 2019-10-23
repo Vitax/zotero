@@ -97,6 +97,7 @@ Zotero.ExpressionsOfConcern = {
 
 	_resetState: function () {
 		this._initialized = false;
+		this._queuedItemIDs = new Set();
 		this._expressionsOfConcern = new Map();
 		this._expressionsOfConcernByLibrary = {};
 		this._librariesWithExpressionsOfConcern = new Set();
@@ -143,9 +144,10 @@ Zotero.ExpressionsOfConcern = {
 	_addEntry: async function (itemID, data) {
 		const queryString = "INSERT OR IGNORE INTO expressionsOfConcern (itemID, data) VALUES (?, ?)";
 		this._expressionsOfConcern.set(itemID, this.FLAG.NORMAL);
+		this._queuedItemIDs.add(itemID);
+		await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
+	},
 
-        await Zotero.DB.queryAsync(queryString, [itemID, JSON.stringify(data)]);
-    },
 
 	/**
 	 *
@@ -200,7 +202,7 @@ Zotero.ExpressionsOfConcern = {
 	_removeEntry: async function (itemID, libraryID) {
 		this._expressionsOfConcern.delete(itemID);
 		this._expressionsOfConcernByLibrary[libraryID].delete(itemID);
-		this._updateExpressionsOfConcernByLibrary(libraryID);
+		this._updateLibraryExpressionsOfConcern(libraryID);
 
 		const queryString = "DELETE FROM expressionsOfConcern WHERE itemID=?";
 		await Zotero.DB.queryAsync(queryString, itemID);
@@ -233,6 +235,21 @@ Zotero.ExpressionsOfConcern = {
 		await Zotero.DB.queryAsync(queryString, [itemID, newFlag]);
 		await Zotero.Notifier.trigger('modify', 'item', [itemID]);
 	},
+
+	_checkQueuedItems: Zotero.Utilities.debounce(async function () {
+		let itemsToShowABannerFor = [];
+
+		for (let item of this._queuedItemIDs) {
+			if (this._expressionsOfConcern.has(item)) {
+				itemsToShowABannerFor.push(item);
+			}
+		}
+		if(!itemsToShowABannerFor.length) {
+			return;
+		}
+
+		this._showAlert(itemsToShowABannerFor);
+	}, 1000),
 
 	/**
 	 *
@@ -269,7 +286,7 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		this._expressionsOfConcernByLibrary[libraryID].add(itemID);
-		this._updateExpressionsOfConcernByLibrary(libraryID);
+		this._updateLibraryExpressionsOfConcern(libraryID);
 	},
 
 	/**
@@ -285,7 +302,7 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		this._expressionsOfConcernByLibrary[libraryID].delete(itemID);
-		this._updateExpressionsOfConcernByLibrary(libraryID);
+		this._updateLibraryExpressionsOfConcern(libraryID);
 	},
 
 	/**
@@ -295,10 +312,10 @@ Zotero.ExpressionsOfConcern = {
 	 */
 	_resetExpressionsOfConcernLibrary: function (libraryID) {
 		delete this._librariesWithExpressionsOfConcern[libraryID];
-		this._updateExpressionsOfConcernByLibrary(libraryID);
+		this._updateLibraryExpressionsOfConcern(libraryID);
 	},
 
-	_updateExpressionsOfConcernByLibrary: async function (libraryID) {
+	_updateLibraryExpressionsOfConcern: async function (libraryID) {
 		let previous = this._librariesWithExpressionsOfConcern.has(libraryID);
 		let current = this.libraryHasExpressionsOfConcern(libraryID);
 
@@ -322,22 +339,21 @@ Zotero.ExpressionsOfConcern = {
 
 	/**
 	 *
-	 * @param expressionsOfConcernItem {[{itemID: string, value: string}]}
+	 * @param itemsWithExpressionsOfConcern {[{itemID: string, value: string}]}
 	 * @returns {Promise<void>}
 	 * @private
 	 */
-	_showAlert: async function (expressionsOfConcernItem) {
-	// Don't show banner for items in the trash
-		let itemIDs = expressionsOfConcernItem.map(expressionOfConcern => expressionOfConcern.itemID);
-		let items = await Zotero.Items.getAsync(itemIDs);
+	_showAlert: async function (itemsWithExpressionsOfConcern) {
+		this._queuedItemIDs.clear();
+		// Don't show banner for items in the trash
+		let items = await Zotero.Items.getAsync(itemsWithExpressionsOfConcern);
 		items = items.filter(item => !item.deleted);
-
-		if (!items.length) {
+		if(!items.length) {
 			return;
 		}
 
-		Zotero.Prefs.set('epxressionsOfConcern.recentItems', JSON.stringify(itemIDs));
-
+		Zotero.Prefs.set('expressionsOfConcern.recentItems', JSON.stringify(items.map(item => item.id)));
+		this._queuedItemIDs.clear();
 		let zoteroPane = Zotero.getActiveZoteroPane();
 		if (zoteroPane) {
 			await zoteroPane.showExpressionsOfConcernBanner();
@@ -346,13 +362,13 @@ Zotero.ExpressionsOfConcern = {
 
 
 	/**
- *
- * @param action
- * @param type
- * @param ids
- * @param extraData
- * @returns {Promise<void>}
- */
+	 *
+	 * @param action
+	 * @param type
+	 * @param ids
+	 * @param extraData
+	 * @returns {Promise<void>}
+	 */
 	notify: async function (action, type, ids, extraData) {
 		if (!this._initialized) {
 			return;
@@ -373,7 +389,9 @@ Zotero.ExpressionsOfConcern = {
 					return;
 				}
 
-				this.scrapeExpressionsOfConcern([item]);
+				await this.scrapeExpressionsOfConcern([item]).then(() => {
+					this._checkQueuedItems();
+				});
 			}
 		}
 
@@ -385,10 +403,11 @@ Zotero.ExpressionsOfConcern = {
 					return;
 				}
 
-				this.scrapeExpressionsOfConcern([expressionOfConcern]);
+				await this.scrapeExpressionsOfConcern([expressionOfConcern]).then(() => {
+					this._checkQueuedItems();
+				});
 
 				let flag = this._expressionsOfConcern.get(itemID);
-
 				if (flag !== undefined && (flag === this.FLAG.HIDDEN && item.deleted)) {
 					this._removeEntryFromExpressionsOfConcernLibrary(itemID, item.libraryID);
 				}
@@ -406,10 +425,10 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	/**
- *
- * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
- * @returns {boolean}
- */
+	 *
+	 * @param item { Zotero.Item } ItItemem which will be checked for expressions of concerns
+	 * @returns {boolean}
+	 */
 	hasExpressionsOfConcern: function (item) {
 		let expressionOfConcern = this._expressionsOfConcern.has(item.id);
 
@@ -421,10 +440,10 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	/**
- * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
- * Query is not working
- * @returns {Promise<void>}
- */
+	 * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
+	 * Query is not working
+	 * @returns {Promise<void>}
+	 */
 	lookupExpressionsOfConcernItems: async function () {
 		const queryString = `SELECT items.itemID, itemDataValues.value
 						 FROM items
@@ -440,9 +459,9 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	/**
- * Returns the most recent item which has a url from the DB
- * @returns {Promise<{itemID: string, value: string}>}
- */
+	 * Returns the most recent item which has a url from the DB
+	 * @returns {Promise<{itemID: string, value: string}>}
+	 */
 	lookupExpressionsOfConcernItem: async function (itemID) {
 		const queryString = `SELECT items.itemID, itemDataValues.value
 						 FROM items
@@ -458,67 +477,67 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	/**
- *
- * @param items {[{itemID: string, value: string}]}
- * @returns {Promise<Object>}
- */
+	 *
+	 * @param items {[{itemID: string, value: string}]}
+	 * @returns {Promise<Object>}
+	 */
 	scrapeExpressionsOfConcern: async function (items) {
 		let promises = [];
 		for (let item of items) {
 			promises.push(Zotero.HTTP.request("GET", item.value, {})
-			.then((response) => {
-				let htmlDoc = response.responseXML;
+				.then((response) => {
+					let htmlDoc = response.responseXML;
 
-				if (!htmlDoc) {
-					var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
-						.createInstance(Components.interfaces.nsIDOMParser);
-					htmlDoc = parser.parseFromString(response.responseText, "text/html");
-				}
-
-				let mainContent = htmlDoc.getElementById('maincontent');
-				if(!mainContent) {
-					return;
-				}
-
-				let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
-
-				let headers = Zotero.Utilities.xpath(errorList, 'h3');
-				let links = [];
-				let notices = [];
-				if (this.containsExpressionsOfConcern(headers)) {
-					for (let ul of errorList) {
-						let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
-
-						for (let link of linkList) {
-							let ref = link.getAttribute('ref');
-							if (ref.includes('type=expressionofconcernin') || ref.includes('type=expressionofconcernfor')) {
-								notices.push(link.innerHTML);
-								let expressionOfConcernLink = link.href;
-
-								if (!expressionOfConcernLink.includes('http')) {
-									expressionOfConcernLink = this._getHostname(item.value) + link.href;
-								}
-
-								links.push(expressionOfConcernLink);
-							}
-						}
+					if (!htmlDoc) {
+						var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+							.createInstance(Components.interfaces.nsIDOMParser);
+						htmlDoc = parser.parseFromString(response.responseText, "text/html");
 					}
 
-					let data = {
-						links: links,
-						notices: notices
-					};
+					let mainContent = htmlDoc.getElementById('maincontent');
+					if (!mainContent) {
+						return;
+					}
 
-					this._addEntry(item.itemID, data);
-				}
-			}).catch((error) => {
-				Zotero.debug("Error while retrieving document: " + error + "\n\n");
-			})
+					let errorList = Zotero.Utilities.xpath(mainContent, '//div[@class="err"]');
+
+					let headers = Zotero.Utilities.xpath(errorList, 'h3');
+					let links = [];
+					let notices = [];
+					if (this.containsExpressionsOfConcern(headers)) {
+						for (let ul of errorList) {
+							let linkList = Zotero.Utilities.xpath(ul, 'ul/li[@class="comments"]/a');
+
+							for (let link of linkList) {
+								let ref = link.getAttribute('ref');
+								if (ref.includes('type=expressionofconcernin')) {
+									notices.push(link.innerHTML);
+									let expressionOfConcernLink = link.href;
+
+									if (!expressionOfConcernLink.includes('http')) {
+										expressionOfConcernLink = this._getHostname(item.value) + link.href;
+									}
+
+									links.push(expressionOfConcernLink);
+								}
+							}
+						}
+
+						let data = {
+							links: links,
+							notices: notices
+						};
+
+						this._addEntry(item.itemID, data);
+					}
+				})
+				.catch((error) => {
+					Zotero.debug("Error while retrieving document: " + error + "\n\n");
+				})
 			);
 		}
 
-		Zotero.Promise.all(promises);
-		this._showAlert(items);
+		await Zotero.Promise.all(promises);
 	},
 
 	/**
@@ -528,11 +547,8 @@ Zotero.ExpressionsOfConcern = {
 	 */
 	containsExpressionsOfConcern: function (headerList) {
 		for (let header of headerList) {
-			if (header.innerHTML.toLowerCase().includes('expression of concern in')) {
-				return true;
-			}
-
-			if (header.innerHTML.toLowerCase().includes('expression of concern for')) {
+			if (header.innerHTML.toLowerCase()
+				.includes('expression of concern in')) {
 				return true;
 			}
 		}

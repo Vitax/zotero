@@ -54,7 +54,7 @@
 	justify-content: space-between;
 	align-items: center;
 	padding: 1.5em 1em;
-	background: #ebccd1;
+	background: #d79921;
 	color: white;
 	font-weight: bolder;
 }
@@ -69,8 +69,15 @@
 	-moz-user-select: text;
 }
 
-
 #expression-of-concern-details dt {
+	font-weight: bold;
+}
+
+#expression-of-concern-details dt:not(:first-child) {
+	margin-top: .5em;
+}
+
+#expression-of-concern dd {
 	margin-left: 2em;
 }
 

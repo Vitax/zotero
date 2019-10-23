@@ -4927,7 +4927,6 @@ var ZoteroPane = new function () {
 
 		// try parsing the pref first
 		try {
-			Zotero.debug('items inside of the recent items prefs: ' + Zotero.Prefs.get('expressionsOfConcern.recentItems'));
 			innerItems = JSON.parse(Zotero.Prefs.get('expressionsOfConcern.recentItems'));
 		}
 		catch (error) {
@@ -4944,10 +4943,10 @@ var ZoteroPane = new function () {
 		let link = document.getElementById('expressions-of-concern-items-link');
 		let close = document.getElementById('expressions-of-concern-items-close');
 
-		let suffix = items.length > 1 ? 'multiple' : 'single';
-		message.textContent = Zotero.getString('expressionsOfConcern.alert.' + suffix);
+		let suffix = innerItems.length === 1 ? 'single' : 'multiple';
+		message.textContent = Zotero.getString('expressionOfConcern.alert.' + suffix);
 
-		link.textContent = Zotero.getString('expressionsOfConcern.alert.view.' + suffix);
+		link.textContent = Zotero.getString('expressionOfConcern.alert.view.' + suffix);
 		// then retrieve the data from Zotero.Items
 		link.onclick = async function () {
 			this.hideExpressionsOfConcernBanner();
@@ -4966,7 +4965,7 @@ var ZoteroPane = new function () {
 	};
 
 	this.hideExpressionsOfConcernBanner = function () {
-		document.getElementById('expressions-of-concern-items-container').setAttribute('collapsed', 'true');
+		document.getElementById('expressions-of-concern-items-container').setAttribute('collapsed', true);
 		Zotero.Prefs.clear('expressionsOfConcern.recentItems');
 	};
 

@@ -300,21 +300,21 @@
 							'document.getBindingParent(this).clickHandler(this)');
 					}
 
-					// Item type menu
-					if (this.showTypeMenu) {
-						// Build item type menu if it hasn't been built yet
-						if (this.itemTypeMenu.itemCount == 0) {
-							this.buildItemTypeMenu();
-						}
-						else {
-							this.updateItemTypeMenuSelection();
-						}
+                        // Item type menu
+                        if (this.showTypeMenu) {
+                            // Build item type menu if it hasn't been built yet
+                            if (this.itemTypeMenu.itemCount == 0) {
+                                this.buildItemTypeMenu();
+                            }
+                            else {
+                                this.updateItemTypeMenuSelection();
+                            }
 
-						this.itemTypeMenu.parentNode.hidden = false;
-					}
-					else {
-						this.itemTypeMenu.parentNode.hidden = true;
-					}
+                            this.itemTypeMenu.parentNode.hidden = false;
+                        }
+                        else {
+                            this.itemTypeMenu.parentNode.hidden = true;
+                        }
 
 					//
 					// Clear and rebuild metadata fields
@@ -364,14 +364,14 @@
 								continue;
 							}
 
-							// createValueElement() adds the itemTypeID as an attribute
-							// and converts it to a localized string for display
-							if (fieldName == 'itemType') {
-								val = this.item.itemTypeID;
-							}
-							else {
-								val = this.item.getField(fieldName);
-							}
+                                // createValueElement() adds the itemTypeID as an attribute
+                                // and converts it to a localized string for display
+                                if (fieldName == 'itemType') {
+                                    val = this.item.itemTypeID;
+                                }
+                                else {
+                                    val = this.item.getField(fieldName);
+                                }
 
 							if (!val && this.hideEmptyFields
 									&& this._visibleFields.indexOf(fieldName) == -1
@@ -556,13 +556,16 @@
                         // Place, in order of preference, after title, after type,
                         // or at beginning
                         var titleFieldID = Zotero.ItemFields.getFieldIDFromTypeAndBase(this.item.itemTypeID, 'title');
-                        var field = this._dynamicFields.getElementsByAttribute('fieldname', Zotero.ItemFields.getName(titleFieldID)).item(0);
+                        var field = this._dynamicFields.getElementsByAttribute('fieldname', Zotero.ItemFields.getName(titleFieldID))
+                                .item(0);
                         if (!field) {
-                            var field = this._dynamicFields.getElementsByAttribute('fieldname', 'itemType').item(0);
+                            var field = this._dynamicFields.getElementsByAttribute('fieldname', 'itemType')
+                                    .item(0);
                         }
                         if (field) {
                             this._beforeRow = field.parentNode.nextSibling;
-                        } else {
+                        }
+                        else {
                             this._beforeRow = this._dynamicFields.firstChild;
                         }
 
@@ -590,7 +593,8 @@
                                 this.addMoreCreatorsRow(num - max);
 
                                 this.disableCreatorAddButtons();
-                            } else {
+                            }
+                            else {
                                 // If we didn't start with creators truncated,
                                 // don't truncate for as long as we're viewing
                                 // this item, so that added creators aren't
@@ -603,7 +607,8 @@
                                     this.disableCreatorAddButtons();
                                 }
                             }
-                        } else if (this.editable && Zotero.CreatorTypes.itemTypeHasCreators(this.item.itemTypeID)) {
+                        }
+                        else if (this.editable && Zotero.CreatorTypes.itemTypeHasCreators(this.item.itemTypeID)) {
                             // Add default row
                             this.addCreatorRow(false, false, true, true);
                             this.disableCreatorAddButtons();
@@ -684,7 +689,8 @@
                         if (this._rowIsClickable(value.getAttribute('fieldname'))) {
                             row.className = 'zotero-clicky';
                             row.addEventListener('click', function (event) {
-                                document.getBindingParent(this).clickHandler(this);
+                                document.getBindingParent(this)
+                                        .clickHandler(this);
                             }, false);
                         }
 
@@ -692,7 +698,8 @@
                         row.appendChild(value);
                         if (beforeElement) {
                             this._dynamicFields.insertBefore(row, this._beforeRow);
-                        } else {
+                        }
+                        else {
                             this._dynamicFields.appendChild(row);
                         }
 
@@ -726,7 +733,8 @@
                             if (lastName === "") {
                                 lastName = this._defaultFullName;
                             }
-                        } else {
+                        }
+                        else {
                             if (firstName === "") {
                                 firstName = this._defaultFirstName;
                             }
@@ -748,7 +756,8 @@
                             typeBox.className = 'creator-type-label zotero-clicky';
                             var img = document.createElement('image');
                             typeBox.appendChild(img);
-                        } else {
+                        }
+                        else {
                             typeBox.className = 'creator-type-label';
                         }
 
@@ -814,7 +823,8 @@
                         // If default first row, don't let user remove it
                         if (defaultRow) {
                             this.disableButton(removeButton);
-                        } else {
+                        }
+                        else {
                             removeButton.setAttribute("onclick",
                                     "document.getBindingParent(this).removeCreator("
                                     + this._creatorCount
@@ -829,7 +839,8 @@
                         // If row isn't saved, don't let user add more
                         if (unsaved) {
                             this.disableButton(addButton);
-                        } else {
+                        }
+                        else {
                             this._enablePlusButton(addButton, typeID, fieldMode);
                         }
                         hbox.appendChild(addButton);
@@ -847,7 +858,8 @@
                         // Set single/double field toggle mode
                         if (fieldMode) {
                             this.switchCreatorMode(hbox.parentNode, 1, true);
-                        } else {
+                        }
+                        else {
                             this.switchCreatorMode(hbox.parentNode, 0, true);
                         }
 
@@ -1004,7 +1016,8 @@
                                 if (lastNameWidth > maxWidth) {
                                     lastName.style.width = maxWidth + "px";
                                     lastName.style.maxWidth = maxWidth + "px";
-                                } else {
+                                }
+                                else {
                                     delete lastName.style.width;
                                     delete lastName.style.maxWidth;
                                 }
@@ -1049,7 +1062,8 @@
                         }
 
                         if (!initial) {
-                            var index = button.getAttribute('fieldname').split('-')[1];
+                            var index = button.getAttribute('fieldname')
+                                    .split('-')[1];
                             var fields = this.getCreatorFields(row);
                             fields.fieldMode = fieldMode;
                             this.modifyCreator(index, fields);
@@ -1277,7 +1291,8 @@
 
                         if (useVbox) {
                             var valueElement = document.createElement("vbox");
-                        } else {
+                        }
+                        else {
                             var valueElement = document.createElement("label");
                         }
 
@@ -1292,7 +1307,8 @@
                                 if (event.button) {
                                     return;
                                 }
-                                document.getBindingParent(this).clickHandler(this);
+                                document.getBindingParent(this)
+                                        .clickHandler(this);
                             }, false);
                             valueElement.className = 'zotero-clicky';
                         }
@@ -1326,10 +1342,12 @@
                                             // in standard time
                                             date = Zotero.Date.sqlToDate(valueText + ' 12:00:00');
                                             valueText = date.toLocaleDateString();
-                                        } else {
+                                        }
+                                        else {
                                             valueText = date.toLocaleString();
                                         }
-                                    } else {
+                                    }
+                                    else {
                                         valueText = '';
                                     }
                                 }
@@ -1384,7 +1402,8 @@
                             }
                             valueElement.setAttribute('crop', 'end');
                             valueElement.setAttribute('value', valueText);
-                        } else {
+                        }
+                        else {
                             // Wrap to multiple lines
                             valueElement.appendChild(document.createTextNode(valueText));
                         }
@@ -1706,7 +1725,8 @@
                                         // If + button is disabled, just focus next creator row
                                         if (Zotero.getAncestorByTagName(target, 'row').lastChild.lastChild.disabled) {
                                             this._focusNextField(this._lastTabIndex);
-                                        } else {
+                                        }
+                                        else {
                                             var creatorFields = this.getCreatorFields(Zotero.getAncestorByTagName(target, 'row'));
                                             this.addCreatorRow(false, creatorFields.creatorTypeID, true);
                                         }
@@ -1746,7 +1766,8 @@
                             case event.DOM_VK_TAB:
                                 if (event.shiftKey) {
                                     this._focusNextField(this._lastTabIndex, true);
-                                } else {
+                                }
+                                else {
                                     this._focusNextField(++this._lastTabIndex);
                                 }
                                 return false;
@@ -1781,7 +1802,8 @@
                         return (async function () {
                             Zotero.debug(`Hiding editor for ${textbox.getAttribute('fieldname')}`);
 
-                            var label = Zotero.getAncestorByTagName(textbox, 'row').querySelector('label');
+                            var label = Zotero.getAncestorByTagName(textbox, 'row')
+                                    .querySelector('label');
                             this._lastTabIndex = -1;
 
                             // Prevent autocomplete breakage in Firefox 3
@@ -1845,7 +1867,8 @@
                                         if (otherFields.fieldMode == 0) {
                                             otherFields.lastName = tempName.split('\t')[0];
                                             otherFields.firstName = tempName.split('\t')[1];
-                                        } else {
+                                        }
+                                        else {
                                             otherFields.lastName = tempName;
                                             otherFields.firstName = '';
                                         }
@@ -1860,7 +1883,8 @@
                                             this._lastTabIndex++;
                                         }
                                     }
-                                } else {
+                                }
+                                else {
                                     this.modifyCreator(creatorIndex, otherFields);
                                 }
 
@@ -1872,7 +1896,8 @@
                                     if (creatorField == 'lastName') {
                                         val = otherFields.fieldMode
                                                 ? this._defaultFullName : this._defaultLastName;
-                                    } else if (creatorField == 'firstName') {
+                                    }
+                                    else if (creatorField == 'firstName') {
                                         val = this._defaultFirstName;
                                     }
                                 }
@@ -1884,9 +1909,10 @@
                                 if (Zotero.ItemTypes.getName(this.item.itemTypeID) === "bookSection") {
                                     var creatorTypeLabels = document.getAnonymousNodes(this)[0].getElementsByClassName("creator-type-label");
                                     Zotero.debug(creatorTypeLabels[creatorTypeLabels.length - 1] + "");
-                                    document.getElementById("zotero-author-guidance").show({
-                                        forEl: creatorTypeLabels[creatorTypeLabels.length - 1]
-                                    });
+                                    document.getElementById("zotero-author-guidance")
+                                            .show({
+                                                forEl: creatorTypeLabels[creatorTypeLabels.length - 1]
+                                            });
                                 }
                             }
 
@@ -1903,16 +1929,20 @@
                                             // If just date, don't convert to UTC
                                             else if (Zotero.Date.isSQLDate(value)) {
                                                 var localDate = Zotero.Date.sqlToDate(value);
-                                                value = Zotero.Date.dateToSQL(localDate).replace(' 00:00:00', '');
-                                            } else if (Zotero.Date.isSQLDateTime(value)) {
+                                                value = Zotero.Date.dateToSQL(localDate)
+                                                        .replace(' 00:00:00', '');
+                                            }
+                                            else if (Zotero.Date.isSQLDateTime(value)) {
                                                 var localDate = Zotero.Date.sqlToDate(value);
                                                 value = Zotero.Date.dateToSQL(localDate, true);
-                                            } else {
+                                            }
+                                            else {
                                                 var d = Zotero.Date.strToDate(value);
                                                 value = null;
                                                 if (d.year && d.month != undefined && d.day) {
                                                     d = new Date(d.year, d.month, d.day);
-                                                    value = Zotero.Date.dateToSQL(d).replace(' 00:00:00', '');
+                                                    value = Zotero.Date.dateToSQL(d)
+                                                            .replace(' 00:00:00', '');
                                                 }
                                             }
                                             break;
@@ -1923,13 +1953,16 @@
                                         case 'accepted':
                                             if (Zotero.Date.isSQLDate(value)) {
                                                 var localDate = Zotero.Date.sqlToDate(value);
-                                                value = Zotero.Date.dateToSQL(localDate).replace(' 00:00:00', '');
-                                            } else {
+                                                value = Zotero.Date.dateToSQL(localDate)
+                                                        .replace(' 00:00:00', '');
+                                            }
+                                            else {
                                                 var d = Zotero.Date.strToDate(value);
                                                 value = null;
                                                 if (d.year && d.month != undefined && d.day) {
                                                     d = new Date(d.year, d.month, d.day);
-                                                    value = Zotero.Date.dateToSQL(d).replace(' 00:00:00', '');
+                                                    value = Zotero.Date.dateToSQL(d)
+                                                            .replace(' 00:00:00', '');
                                                 }
                                             }
                                             break;
@@ -1941,11 +1974,16 @@
                                                 // since it doesn't make sense for those to be actual metadata values
                                                 var lc = value.toLowerCase();
                                                 if (lc == 'yesterday' || lc == Zotero.getString('date.yesterday')) {
-                                                    value = Zotero.Date.dateToSQL(new Date(new Date().getTime() - 86400000)).substr(0, 10);
-                                                } else if (lc == 'today' || lc == Zotero.getString('date.today')) {
-                                                    value = Zotero.Date.dateToSQL(new Date()).substr(0, 10);
-                                                } else if (lc == 'tomorrow' || lc == Zotero.getString('date.tomorrow')) {
-                                                    value = Zotero.Date.dateToSQL(new Date(new Date().getTime() + 86400000)).substr(0, 10);
+                                                    value = Zotero.Date.dateToSQL(new Date(new Date().getTime() - 86400000))
+                                                            .substr(0, 10);
+                                                }
+                                                else if (lc == 'today' || lc == Zotero.getString('date.today')) {
+                                                    value = Zotero.Date.dateToSQL(new Date())
+                                                            .substr(0, 10);
+                                                }
+                                                else if (lc == 'tomorrow' || lc == Zotero.getString('date.tomorrow')) {
+                                                    value = Zotero.Date.dateToSQL(new Date(new Date().getTime() + 86400000))
+                                                            .substr(0, 10);
                                                 }
                                             }
                                     }
@@ -2025,7 +2063,8 @@
 				<![CDATA[
                         if (label.firstChild) {
                             label.firstChild.nodeValue = value;
-                        } else {
+                        }
+                        else {
                             label.value = value;
                         }
                     ]]>
@@ -2048,9 +2087,11 @@
                                     // capitalize the first letter, including after beginning punctuation
                                     // capitalize after ?, ! and remove space(s) before those as well as colon analogous to capitalizeTitle function
                                     // also deal with initial punctuation here - open quotes and Spanish beginning punctuation marks
-                                    newVal = val.toLowerCase().replace(/\s*:/, ":");
+                                    newVal = val.toLowerCase()
+                                            .replace(/\s*:/, ":");
                                     newVal = newVal.replace(/(([\?!]\s*|^)([\'\"¡¿“‘„«\s]+)?[^\s])/g, function (x) {
-                                        return x.replace(/\s+/m, " ").toUpperCase();
+                                        return x.replace(/\s+/m, " ")
+                                                .toUpperCase();
                                     });
                                     break;
                                 default:
@@ -2064,7 +2105,8 @@
                             var isTitle = Zotero.ItemFields.getBaseIDFromTypeAndField(
                                     this.item.itemTypeID, fieldName) == Zotero.ItemFields.getID('title');
                             var shortTitleVal = this.item.getField('shortTitle');
-                            if (isTitle && newVal.toLowerCase().startsWith(shortTitleVal.toLowerCase())) {
+                            if (isTitle && newVal.toLowerCase()
+                                    .startsWith(shortTitleVal.toLowerCase())) {
                                 this._modifyField('shortTitle', newVal.substr(0, shortTitleVal.length));
                             }
 
@@ -2145,7 +2187,8 @@
                         return (async function () {
                             var row = Zotero.getAncestorByTagName(document.popupNode, 'row');
                             var typeBox = row.getElementsByAttribute('popup', 'creator-type-menu')[0];
-                            var creatorIndex = parseInt(typeBox.getAttribute('fieldname').split('-')[1]);
+                            var creatorIndex = parseInt(typeBox.getAttribute('fieldname')
+                                    .split('-')[1]);
                             var fields = this.getCreatorFields(row);
                             var lastName = fields.lastName;
                             var firstName = fields.firstName;
@@ -2173,7 +2216,8 @@
                             if (index == 0 && dir == 'up') {
                                 Zotero.debug("Can't move up creator 0");
                                 return;
-                            } else if (index + 1 == this.item.numCreators() && dir == 'down') {
+                            }
+                            else if (index + 1 == this.item.numCreators() && dir == 'down') {
                                 Zotero.debug("Can't move down last creator");
                                 return;
                             }
@@ -2276,7 +2320,8 @@
                                     break;
                                 }
                             }
-                        } else {
+                        }
+                        else {
                             Zotero.debug('Looking for tabindex ' + tabindex, 4);
                             for (var pos = 0; pos < tabbableFields.length; pos++) {
                                 if (parseInt(tabbableFields[pos].getAttribute('ztabindex')) >= tabindex) {
@@ -2299,7 +2344,8 @@
                         if (!back && tabbableFields[pos + 1]) {
                             Zotero.debug("Scrolling to next field");
                             var visElem = tabbableFields[pos + 1];
-                        } else {
+                        }
+                        else {
                             var visElem = next;
                         }
                         // DEBUG: This doesn't seem to work anymore
@@ -2396,7 +2442,8 @@
                                         eocReasons.appendChild(dt);
                                         eocReasons.appendChild(dd);
                                     }
-                                } else {
+                                }
+                                else {
                                     this._id('expression-of-concern-reasons').hidden = true;
                                 }
 
@@ -2412,12 +2459,14 @@
 
                                         eocLinks.appendChild(a);
                                     }
-                                } else {
+                                }
+                                else {
                                     this._id('expression-of-concern-links').hidden = true;
                                 }
 
                                 Zotero.Utilities.Internal.updateHTMLInXUL(this._id('expression-of-concern-box'));
-                            }).bind(this);
+                            })
+                                    .bind(this);
                         }
 
                         return this._updateExpressionsOfConcern(this.item);
@@ -2452,7 +2501,8 @@
                                             'retraction.date',
                                             data.date.toLocaleDateString()
                                     );
-                                } else {
+                                }
+                                else {
                                     this._id('retraction-date').hidden = true;
                                 }
 
@@ -2476,7 +2526,8 @@
                                             allowHiding = true;
                                         }
                                     }
-                                } else {
+                                }
+                                else {
                                     this._id('retraction-reasons').hidden = true;
                                 }
 
@@ -2488,11 +2539,13 @@
                                     a.textContent = Zotero.getString('retraction.notice');
                                     if (data.doi) {
                                         a.href = 'https://doi.org/' + data.doi;
-                                    } else {
+                                    }
+                                    else {
                                         a.href = `https://www.ncbi.nlm.nih.gov/pubmed/${data.pmid}/`;
                                     }
                                     div.appendChild(a);
-                                } else {
+                                }
+                                else {
                                     this._id('retraction-notice').hidden = true;
                                 }
 
@@ -2518,7 +2571,8 @@
 
                                     div.appendChild(p);
                                     div.appendChild(ul);
-                                } else {
+                                }
+                                else {
                                     this._id('retraction-links').hidden = true;
                                 }
 
@@ -2532,7 +2586,8 @@
                                     for (let part of parts) {
                                         if (part.type == 'text') {
                                             creditElem.appendChild(document.createTextNode(part.text));
-                                        } else if (part.type == 'link') {
+                                        }
+                                        else if (part.type == 'link') {
                                             let a = document.createElementNS(htmlNS, 'a');
                                             a.href = part.attributes.href;
                                             a.textContent = part.text;
@@ -2680,9 +2735,9 @@
                         <div id="expression-of-concern-links"/>
 
                         <p id="expression-of-concern-credit"/>
-                        <div id="expression-of-concern-hide">
-                            <button/>
-                        </div>
+                        <!--<div id="expression-of-concern-hide">-->
+                        <!--<button/>-->
+                        <!--</div>-->
                     </div>
                 </div>
 

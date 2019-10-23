@@ -223,7 +223,7 @@
 			</vbox>
 
 			<vbox id="expressions-of-concern-items-container" collapsed="true">
-				<div xmlns="http://www.w3.org/1999/xhtml" id="expresions-of-concern-items-banner">
+				<div xmlns="http://www.w3.org/1999/xhtml" id="expressions-of-concern-items-banner">
 					<div id="expressions-of-concern-items-message"/>
 					<div id="expressions-of-concern-items-link"/>
 					<div id="expressions-of-concern-items-close">×</div>

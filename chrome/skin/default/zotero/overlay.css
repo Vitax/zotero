@@ -762,6 +762,41 @@
 	font-size: 22px;
 }
 
+#expressions-of-concern-items-banner {
+	display: flex;
+	justify-content: center;
+	background: #d79921;
+	line-height: 2.2em;
+	font-weight: bold;
+	color: white;
+	font-size: 13.5px;
+	text-align: center;
+	padding: 0 2em;
+	position: relative;
+}
+
+#expressions-of-concern-items-message {
+	margin-right: .8em;
+}
+
+#expressions-of-concern-items-link {
+	text-decoration: underline;
+	margin-left: .3em;
+	cursor: pointer;
+}
+
+#expressions-of-concern-items-link:active {
+	color: #f9e8e2;
+}
+
+#expressions-of-concern-items-close {
+	position: absolute;
+	cursor: pointer;
+	top: -2px;
+	right: 9px;
+	font-size: 22px;
+}
+
 /* Missing in Fx60 */
 .autocomplete-richlistbox {
 	border: 1px solid transparent;
