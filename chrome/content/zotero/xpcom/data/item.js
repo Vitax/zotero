@@ -3721,9 +3721,10 @@ Zotero.Item.prototype.getImageSrcWithTags = Zotero.Promise.coroutine(function* (
 	var uri = this.getImageSrc();
 
 	var retracted = Zotero.Retractions.isRetracted(this);
+	var hasExpressionOfConcern = Zotero.ExpressionsOfConcern.hasExpressionsOfConcern(this);
 
 	var tags = this.getTags();
-	if (!tags.length && !retracted) {
+	if (!tags.length && !retracted && !hasExpressionOfConcern) {
 		return uri;
 	}
 
@@ -3736,7 +3737,7 @@ Zotero.Item.prototype.getImageSrcWithTags = Zotero.Promise.coroutine(function* (
 				colorData.push(data);
 			}
 		}
-		if (!colorData.length && !retracted) {
+		if (!colorData.length && !retracted && !hasExpressionOfConcern) {
 			return uri;
 		}
 		colorData.sort(function (a, b) {
@@ -3745,7 +3746,7 @@ Zotero.Item.prototype.getImageSrcWithTags = Zotero.Promise.coroutine(function* (
 	}
 	var colors = colorData.map(val => val.color);
 
-	return Zotero.Tags.generateItemsListImage(colors, uri, retracted);
+	return Zotero.Tags.generateItemsListImage(colors, uri, retracted, hasExpressionOfConcern);
 });
 
 

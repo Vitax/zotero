@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "عرض التكرارات">
 <!ENTITY zotero.collections.showUnfiledItems "عرض العناصر غير المصنفة">
 <!ENTITY zotero.collections.showRetractedItems "إظهار العناصر المستردة">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "نوع العنصر">
 <!ENTITY zotero.items.type_column "نوع العنصر">

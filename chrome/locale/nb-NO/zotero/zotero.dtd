@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Show Duplicates">
 <!ENTITY zotero.collections.showUnfiledItems "Show Unfiled Items">
 <!ENTITY zotero.collections.showRetractedItems "Show Retracted Items">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Elementtype">
 <!ENTITY zotero.items.type_column "Elementtype">

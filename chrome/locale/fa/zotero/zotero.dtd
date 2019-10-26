@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "نمایش آیتم‌‌های تکراری">
 <!ENTITY zotero.collections.showUnfiledItems "نمایش آیتم‌های دسته‌بندی نشده">
 <!ENTITY zotero.collections.showRetractedItems "Show Retracted Items">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "نوع آیتم">
 <!ENTITY zotero.items.type_column "نوع آیتم">

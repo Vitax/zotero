@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Yinelenmiş Eserleri Göster">
 <!ENTITY zotero.collections.showUnfiledItems "Dosyalanmamış Eserleri Göster">
 <!ENTITY zotero.collections.showRetractedItems "Geri Çekilmiş Eserleri Göster">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Eser Türü">
 <!ENTITY zotero.items.type_column "Eser Türü">

@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "重複アイテムを表示">
 <!ENTITY zotero.collections.showUnfiledItems "未整理のアイテムを表示">
 <!ENTITY zotero.collections.showRetractedItems "Show Retracted Items">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "アイテムの種類">
 <!ENTITY zotero.items.type_column "アイテムの種類">

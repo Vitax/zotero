@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Duplikate anzeigen">
 <!ENTITY zotero.collections.showUnfiledItems "Einträge ohne Sammlung anzeigen">
 <!ENTITY zotero.collections.showRetractedItems "Zurückgezogene Einträge anzeigen">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Einträge mit hinweisen auf Fehler">
 
 <!ENTITY zotero.items.itemType "Eintragsart">
 <!ENTITY zotero.items.type_column "Eintragsart">

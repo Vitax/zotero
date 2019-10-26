@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Afficher les doublons">
 <!ENTITY zotero.collections.showUnfiledItems "Afficher les documents sans collection">
 <!ENTITY zotero.collections.showRetractedItems "Show Retracted Items">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Type de document">
 <!ENTITY zotero.items.type_column "Type de document">

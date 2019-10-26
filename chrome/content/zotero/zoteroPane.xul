@@ -244,7 +244,7 @@
 					<menuitem class="zotero-menuitem-show-duplicates" label="&zotero.toolbar.duplicate.label;"/>
 					<menuitem class="zotero-menuitem-show-unfiled" label="&zotero.collections.showUnfiledItems;"/>
 					<menuitem class="zotero-menuitem-show-retracted" label="&zotero.collections.showRetractedItems;"/>
-<!--					<menuitem class="zotero-menuitem-show-expressionsOfConcern" label="&zotero.collections.expressionsOfConcern;"/>-->
+					<menuitem class="zotero-menuitem-show-expressionOfConcern" label="&zotero.collections.showItemsWithExpressionOfConcern;"/>
 					<menuitem class="zotero-menuitem-edit-collection"/>
 					<menuitem class="zotero-menuitem-duplicate-collection"/>
 					<menuitem class="zotero-menuitem-mark-read-feed" label="&zotero.toolbar.markFeedRead.label;"/>

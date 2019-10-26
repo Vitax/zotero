@@ -54,6 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Afișează duplicatele">
 <!ENTITY zotero.collections.showUnfiledItems "Arată înregistrările neîndosariate">
 <!ENTITY zotero.collections.showRetractedItems "Afișează itemii retrași">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Tip înregistrare">
 <!ENTITY zotero.items.type_column "Tip de înregistrare">
