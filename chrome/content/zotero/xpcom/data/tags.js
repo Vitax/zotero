@@ -887,17 +887,47 @@ Zotero.Tags = new function () {
 				};
 			});
 		}
-		var x = extraImageWidth
+
+		let x = extraImageWidth
 			+ (retracted ? retractionImageLeftPadding + retractionImageWidth : 0)
 			+ (hasExpressionOfConcern ? expressionOfConcernImageLeftPadding + expressionOfConcernImageWidth : 0)
 			+ tagsLeftPadding;
+
 		for (let i = 0, len = colors.length; i < len; i++) {
 			ctx.fillStyle = colors[i];
 			_canvasRoundRect(ctx, x, swatchTop + 1, swatchWidth, swatchHeight, 2, true, false);
 			x += swatchWidth + swatchSeparator;
 		}
 
-		if (retracted) {
+		if (hasExpressionOfConcern && retracted) {
+			let [img1, img2, img3] = await Zotero.Promise.all([
+				_itemsListImagePromises[extraImage],
+				_itemsListImagePromises[retractionImage],
+				_itemsListImagePromises[expressionOfConcernImage]
+			]);
+
+			ctx.drawImage(img1, 0, 0, extraImageWidth, extraImageHeight);
+
+			ctx.drawImage(
+				img2,
+				extraImageWidth + retractionImageLeftPadding
+				+ ((retractionImageWidth - retractionImageScaledWidth) / 2),
+				(retractionImageHeight - retractionImageScaledHeight) / 2 + 1, // Lower by 1
+				retractionImageScaledWidth,
+				retractionImageScaledHeight
+			);
+
+			ctx.drawImage(
+				img3,
+				extraImageWidth + (retractionImageWidth - retractionImageLeftPadding)
+				+ expressionOfConcernImageLeftPadding
+				+ ((expressionOfConcernImageWidth - expressionOfConcernImageScaledWidth) / 2),
+				(expressionOfConcernImageHeight - expressionOfConcernImageScaledHeight) / 2 + 1, // Lower by 1
+				expressionOfConcernImageScaledWidth,
+				expressionOfConcernImageScaledHeight
+			);
+		}
+		else if (retracted) {
 			let [img1, img2] = await Zotero.Promise.all([
 				_itemsListImagePromises[extraImage],
 				_itemsListImagePromises[retractionImage],
@@ -906,7 +936,7 @@ Zotero.Tags = new function () {
 			ctx.drawImage(
 				img2,
 				extraImageWidth + retractionImageLeftPadding
-					+ ((retractionImageWidth - retractionImageScaledWidth) / 2),
+				+ ((retractionImageWidth - retractionImageScaledWidth) / 2),
 				(retractionImageHeight - retractionImageScaledHeight) / 2 + 1, // Lower by 1
 				retractionImageScaledWidth,
 				retractionImageScaledHeight
@@ -923,35 +953,8 @@ Zotero.Tags = new function () {
 				extraImageWidth + expressionOfConcernImageLeftPadding
 				+ ((expressionOfConcernImageWidth - expressionOfConcernImageScaledWidth) / 2),
 				(expressionOfConcernImageHeight - expressionOfConcernImageScaledHeight) / 2 + 1, // Lower by 1
-				expressionOfConcernImageWidth,
-				expressionOfConcernImageHeight
-			);
-		}
-		else if (hasExpressionOfConcern && retracted) {
-			let [img1, img2, img3] = await Zotero.Promise.all([
-				_itemsListImagePromises[extraImage],
-				_itemsListImagePromises[retractionImage],
-				_itemsListImagePromises[expressionOfConcernImage]
-			]);
-			ctx.drawImage(img1, 0, 0, extraImageWidth, extraImageHeight);
-
-			ctx.drawImage(
-				img2,
-				extraImageWidth + retractionImageLeftPadding
-				+ ((retractionImageWidth - retractionImageScaledWidth) / 2),
-				(retractionImageHeight - retractionImageScaledHeight) / 2 + 1, // Lower by 1
-				retractionImageScaledWidth,
-				retractionImageScaledHeight
-			);
-
-			ctx.drawImage(
-				img3,
-				extraImageWidth + retractionImageWidth
-				+ extraImageWidth + expressionOfConcernImageLeftPadding
-				+ ((expressionOfConcernImageWidth - expressionOfConcernImageScaledWidth) / 2),
-				(expressionOfConcernImageHeight - expressionOfConcernImageScaledHeight) / 2 + 1, // Lower by 1
-				expressionOfConcernImageWidth,
-				expressionOfConcernImageHeight
+				expressionOfConcernImageScaledWidth,
+				expressionOfConcernImageScaledHeight
 			);
 		}
 		else {
