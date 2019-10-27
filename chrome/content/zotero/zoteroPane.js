@@ -1023,7 +1023,7 @@ var ZoteroPane = new function () {
 			yield this.collectionsView.selectByID("L" + libraryID);
 		}
 		else if (type == 'expressionsOfConcern') {
-			yield this.collectionsView.selectByID("L" + libraryID);
+			yield this.collectionsView.selectByID("EOC" + libraryID);
 		}
 		// Select next appropriate row after removal
 		else {

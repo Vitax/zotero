@@ -24,26 +24,26 @@
 */
 
 Zotero.ExpressionsOfConcern = {
-    _prefObserverRegistered: false,
-    _initialized: false,
+	_prefObserverRegistered: false,
+	_initialized: false,
 
-    FLAG: {
-        NORMAL: 0,
-        HIDDEN: 1,
-    },
+	FLAG: {
+		NORMAL: 0,
+		HIDDEN: 1,
+	},
 
 
-    init: async function () {
-        this._resetState();
+	init: async function () {
+		this._resetState();
 
-        if (!this._prefObserverRegistered) {
-            Zotero.Prefs.registerObserver('expressionsOfConcern.enabled', this._handlePrefChange.bind(this));
-            this._prefObserverRegistered = true;
-        }
+		if (!this._prefObserverRegistered) {
+			Zotero.Prefs.registerObserver('expressionsOfConcern.enabled', this._handlePrefChange.bind(this));
+			this._prefObserverRegistered = true;
+		}
 
-        if (!Zotero.Prefs.get('expressionsOfConcern.enabled')) {
-            return;
-        }
+		if (!Zotero.Prefs.get('expressionsOfConcern.enabled')) {
+			return;
+		}
 
 		const queryString = "CREATE TABLE IF NOT EXISTS expressionsOfConcern (itemID INTEGER PRIMARY KEY, data text, FOREIGN KEY (itemID) REFERENCES items(itemID)on delete cascade )";
 		await Zotero.DB.queryAsync(queryString);
@@ -70,7 +70,7 @@ Zotero.ExpressionsOfConcern = {
 			this.scrapeExpressionsOfConcern(items);
 		}
 
-        let expressionsOfConcern = await this._getEntries();
+		let expressionsOfConcern = await this._getEntries();
 
 		for (let row of expressionsOfConcern) {
 			this._expressionsOfConcern.set(row.itemID, row.flag);
@@ -83,17 +83,17 @@ Zotero.ExpressionsOfConcern = {
 			}
 		}
 
-        /**
-         * Idea after everything basic functionality works:
-         *        - Setup a Database with a local service which scrapes PubMed and other pages for publications with expressions of concern
-         *        - Store scraping processes into tables
-         *        - Have some kind of hash which determines the version of the database
-         *        - Request the Hash form the database and compare the local cache file hash with it
-         *        - Get new Database if they do not match !
-         */
+		/**
+		 * Idea after everything basic functionality works:
+		 *        - Setup a Database with a local service which scrapes PubMed and other pages for publications with expressions of concern
+		 *        - Store scraping processes into tables
+		 *        - Have some kind of hash which determines the version of the database
+		 *        - Request the Hash form the database and compare the local cache file hash with it
+		 *        - Get new Database if they do not match !
+		 */
 
-        this._initialized = true;
-    },
+		this._initialized = true;
+	},
 
 	_resetState: function () {
 		this._initialized = false;
@@ -113,10 +113,10 @@ Zotero.ExpressionsOfConcern = {
 				delete this._notifierID;
 			}
 
-            await this._removeAllEntries();
-            this._resetState();
-        }
-    },
+			await this._removeAllEntries();
+			this._resetState();
+		}
+	},
 
 	/**
 	 * returns the PubMed url
@@ -189,8 +189,8 @@ Zotero.ExpressionsOfConcern = {
 							 LEFT JOIN deletedItems ON items.itemID = deletedItems.itemID`;
 		let expressionsOfConcern = await Zotero.DB.queryAsync(queryString);
 
-        return expressionsOfConcern;
-    },
+		return expressionsOfConcern;
+	},
 
 	/**
 	 *
@@ -219,15 +219,15 @@ Zotero.ExpressionsOfConcern = {
 		let queryString = "SELECT itemID FROM expressionsOfConcern";
 		let itemIDs = await Zotero.DB.queryAsync(queryString);
 
-        if (!itemIDs.length) {
-            return;
-        }
+		if (!itemIDs.length) {
+			return;
+		}
 
-        await Zotero.DB.queryAsync("delete from expressionsOfConcern");
-        this._expressionsOfConcern.clear();
+		await Zotero.DB.queryAsync("delete from expressionsOfConcern");
+		this._expressionsOfConcern.clear();
 
-        await Zotero.Notifier.trigger("trash", "expressionOfConcern", itemIDs);
-    },
+		await Zotero.Notifier.trigger("trash", "expressionOfConcern", itemIDs);
+	},
 
 	_updateEntryFlag: async function (itemID, newFlag) {
 		this._expressionsOfConcern.set(itemID, newFlag);
@@ -244,7 +244,7 @@ Zotero.ExpressionsOfConcern = {
 				itemsToShowABannerFor.push(item);
 			}
 		}
-		if(!itemsToShowABannerFor.length) {
+		if (!itemsToShowABannerFor.length) {
 			return;
 		}
 
@@ -348,7 +348,7 @@ Zotero.ExpressionsOfConcern = {
 		// Don't show banner for items in the trash
 		let items = await Zotero.Items.getAsync(itemsWithExpressionsOfConcern);
 		items = items.filter(item => !item.deleted);
-		if(!items.length) {
+		if (!items.length) {
 			return;
 		}
 
@@ -432,9 +432,9 @@ Zotero.ExpressionsOfConcern = {
 	hasExpressionsOfConcern: function (item) {
 		let expressionOfConcern = this._expressionsOfConcern.has(item.id);
 
-        if (!expressionOfConcern) {
-            return false;
-        }
+		if (!expressionOfConcern) {
+			return false;
+		}
 
 		return true;
 	},
@@ -446,14 +446,23 @@ Zotero.ExpressionsOfConcern = {
 	 */
 	lookupExpressionsOfConcernItems: async function () {
 		const queryString = `SELECT items.itemID, itemDataValues.value
-						 FROM items
-								  LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
-								  LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
-								  LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
-															   itemAttachments.itemID = itemData.itemID
-								  LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
-						 WHERE itemTypeFields.fieldID = 1
-						   AND itemAttachments.contentType <> 'application/pdf'`;
+							FROM items
+							LEFT JOIN itemTypeFields 
+								ON items.itemTypeID = itemTypeFields.itemTypeID	
+							LEFT JOIN itemTypes 
+								ON items.itemTypeID = itemTypes.itemTypeID
+							LEFT JOIN itemData 
+								ON itemData.fieldID = itemTypeFields.fieldID
+							LEFT JOIN fields 
+								ON fields.fieldID = itemData.fieldID
+							LEFT JOIN itemAttachments 
+								ON itemAttachments.parentItemID = items.itemID 
+								AND	itemAttachments.itemID = itemData.itemID
+							LEFT JOIN itemDataValues 
+								ON itemDataValues.valueID = itemData.valueID
+							WHERE itemTypes.typeName <> 'attachment'
+								AND fields.fieldName = 'url'
+								AND itemAttachments.contentType <> 'application/pdf' `;
 		const filteredItems = await Zotero.DB.queryAsync(queryString);
 		return filteredItems;
 	},
@@ -464,15 +473,24 @@ Zotero.ExpressionsOfConcern = {
 	 */
 	lookupExpressionsOfConcernItem: async function (itemID) {
 		const queryString = `SELECT items.itemID, itemDataValues.value
-						 FROM items
-								  LEFT JOIN itemTypeFields ON items.itemTypeID = itemTypeFields.itemTypeID
-								  LEFT JOIN itemData ON itemData.fieldID = itemTypeFields.fieldID
-								  LEFT JOIN itemAttachments ON itemAttachments.parentItemID = items.itemID AND
-															   itemAttachments.itemID = itemData.itemID
-								  LEFT JOIN itemDataValues ON itemDataValues.valueID = itemData.valueID
-						 WHERE itemTypeFields.fieldID = 1
-						   AND itemAttachments.contentType <> 'application/pdf'
-						   AND items.itemID = ?`;
+							FROM items
+							LEFT JOIN itemTypeFields 
+								ON items.itemTypeID = itemTypeFields.itemTypeID	
+							LEFT JOIN itemTypes 
+								ON items.itemTypeID = itemTypes.itemTypeID
+							LEFT JOIN itemData 
+								ON itemData.fieldID = itemTypeFields.fieldID
+							LEFT JOIN fields 
+								ON fields.fieldID = itemData.fieldID
+							LEFT JOIN itemAttachments 
+								ON itemAttachments.parentItemID = items.itemID 
+								AND	itemAttachments.itemID = itemData.itemID
+							LEFT JOIN itemDataValues 
+								ON itemDataValues.valueID = itemData.valueID
+							WHERE itemTypes.typeName <> 'attachment'
+								AND fields.fieldName = 'url'
+								AND itemAttachments.contentType <> 'application/pdf'
+								AND items.itemID = ?`;
 		return await Zotero.DB.rowQueryAsync(queryString, [itemID]);
 	},
 

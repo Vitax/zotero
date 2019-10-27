@@ -1223,11 +1223,11 @@ Zotero.Translate.Base.prototype = {
 	 * translators, but new code should use {@link Zotero.Translate.Base#setHandler} to register a
 	 * "done" handler to determine when execution of web/search translators is complete.
 	 *
-	 * @param 	{Integer|FALSE}	[libraryID]		Library in which to save items,
-	 *																or NULL for default library;
-	 *																if FALSE, don't save items
-	 * @param 	{Boolean}				[saveAttachments=true]	Exclude attachments (e.g., snapshots) on import
-	 * @param 	{Boolean} [linkFiles=false] - Save linked files instead of stored files
+	 * @param    {Integer|FALSE}    [libraryID]        Library in which to save items,
+	 *                                                                or NULL for default library;
+	 *                                                                if FALSE, don't save items
+	 * @param    {Boolean}                [saveAttachments=true]    Exclude attachments (e.g., snapshots) on import
+	 * @param    {Boolean} [linkFiles=false] - Save linked files instead of stored files
 	 * @returns {Promise}                                       Promise resolved with saved items
 	 *                                                          when translation complete
 	 */
@@ -3143,13 +3143,13 @@ Zotero.Translate.IO._RDFSandbox.prototype = {
 	/**
 	 * Gets statements matching a certain pattern
 	 *
-	 * @param	{String|Zotero.RDF.AJAW.Symbol}	subj 		Subject
-	 * @param	{String|Zotero.RDF.AJAW.Symbol}	predicate	Predicate
-	 * @param	{String|Zotero.RDF.AJAW.Symbol}	obj			Object
-	 * @param	{Boolean}							objLiteral	Whether the object is a literal (as
-	 *															opposed to a URI)
-	 * @param	{Boolean}							justOne		Whether to stop when a single result is
-	 *															retrieved
+	 * @param    {String|Zotero.RDF.AJAW.Symbol}    subj        Subject
+	 * @param    {String|Zotero.RDF.AJAW.Symbol}    predicate    Predicate
+	 * @param    {String|Zotero.RDF.AJAW.Symbol}    obj            Object
+	 * @param    {Boolean}                            objLiteral    Whether the object is a literal (as
+	 *                                                            opposed to a URI)
+	 * @param    {Boolean}                            justOne        Whether to stop when a single result is
+	 *                                                            retrieved
 	 */
 	"getStatementsMatching": function (subj, pred, obj, objLiteral, justOne) {
 		var statements = this._dataStore.statementsMatching(
