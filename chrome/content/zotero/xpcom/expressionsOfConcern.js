@@ -236,6 +236,10 @@ Zotero.ExpressionsOfConcern = {
 		await Zotero.Notifier.trigger('modify', 'item', [itemID]);
 	},
 
+	checkQueuedItemsInternal: async function() {
+		await this._checkQueuedItems;
+	},
+
 	_checkQueuedItems: Zotero.Utilities.debounce(async function () {
 		let itemsToShowABannerFor = [];
 
