@@ -819,7 +819,7 @@ Zotero.Tags = new function () {
 		var swatchWidth = 8 * multiplier;
 		var swatchHeight = 8 * multiplier;
 
-		var hash = colors.join("") + (extraImage ? extraImage : "") + (retracted ? "retracted" : "") + (hasExpressionOfConcern ? "hasExpressionOfConcern" : "");
+		var hash = colors.join("") + (extraImage ? extraImage : "") + (retracted ? "retracted" : "") + (hasExpressionOfConcern ? "expressionOfConcern" : "");
 
 		if (_itemsListImagePromises[hash]) {
 			return _itemsListImagePromises[hash];

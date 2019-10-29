@@ -1,25 +1,25 @@
 /*
     ***** BEGIN LICENSE BLOCK *****
-    
+
     Copyright © 2006-2016 Center for History and New Media
                           George Mason University, Fairfax, Virginia, USA
                           https://zotero.org
-    
+
     This file is part of Zotero.
-    
+
     Zotero is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    
+
     Zotero is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
-    
+
     You should have received a copy of the GNU Affero General Public License
     along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     ***** END LICENSE BLOCK *****
 */
 
@@ -30,13 +30,13 @@ Zotero.SearchConditions = new function(){
 	this.getLocalizedName = getLocalizedName;
 	this.parseSearchString = parseSearchString;
 	this.parseCondition = parseCondition;
-	
+
 	var _initialized = false;
 	var _conditions;
 	var _standardConditions;
-	
+
 	var self = this;
-	
+
 	/*
 	 * Define the advanced search operators
 	 */
@@ -52,15 +52,15 @@ Zotero.SearchConditions = new function(){
 		isBefore: true,
 		isAfter: true,
 		isInTheLast: true,
-		
+
 		// Special
 		any: true,
 		all: true,
 		true: true,
 		false: true
 	};
-	
-	
+
+
 	/*
 	 * Define and set up the available advanced search conditions
 	 *
@@ -81,7 +81,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			// Don't include child items
 			{
 				name: 'noChildren',
@@ -90,7 +90,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			{
 				name: 'unfiled',
 				operators: {
@@ -98,7 +98,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			{
 				name: 'retracted',
 				operators: {
@@ -108,7 +108,7 @@ Zotero.SearchConditions = new function(){
 			},
 
 			{
-				name: 'expressionsOfConcern',
+				name: 'expressionOfConcern',
 				operators: {
 					true: true,
 					false: true
@@ -122,7 +122,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			{
 				name: 'includeParentsAndChildren',
 				operators: {
@@ -130,7 +130,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			{
 				name: 'includeParents',
 				operators: {
@@ -138,7 +138,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			{
 				name: 'includeChildren',
 				operators: {
@@ -146,7 +146,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			// Search recursively within collections
 			{
 				name: 'recursive',
@@ -155,7 +155,7 @@ Zotero.SearchConditions = new function(){
 					false: true
 				}
 			},
-			
+
 			// Join mode
 			{
 				name: 'joinMode',
@@ -164,7 +164,7 @@ Zotero.SearchConditions = new function(){
 					all: true
 				}
 			},
-			
+
 			{
 				name: 'quicksearch-titleCreatorYear',
 				operators: {
@@ -175,7 +175,7 @@ Zotero.SearchConditions = new function(){
 				},
 				noLoad: true
 			},
-			
+
 			{
 				name: 'quicksearch-fields',
 				operators: {
@@ -186,7 +186,7 @@ Zotero.SearchConditions = new function(){
 				},
 				noLoad: true
 			},
-			
+
 			{
 				name: 'quicksearch-everything',
 				operators: {
@@ -197,7 +197,7 @@ Zotero.SearchConditions = new function(){
 				},
 				noLoad: true
 			},
-			
+
 			// Deprecated
 			{
 				name: 'quicksearch',
@@ -209,18 +209,18 @@ Zotero.SearchConditions = new function(){
 				},
 				noLoad: true
 			},
-			
+
 			// Quicksearch block markers
 			{
 				name: 'blockStart',
 				noLoad: true
 			},
-			
+
 			{
 				name: 'blockEnd',
 				noLoad: true
 			},
-			
+
 			// Shortcuts for adding collections and searches by id
 			{
 				name: 'collectionID',
@@ -230,7 +230,7 @@ Zotero.SearchConditions = new function(){
 				},
 				noLoad: true
 			},
-			
+
 			{
 				name: 'savedSearchID',
 				operators: {
@@ -239,12 +239,12 @@ Zotero.SearchConditions = new function(){
 				},
 				noLoad: true
 			},
-			
-			
+
+
 			//
 			// Standard conditions
 			//
-			
+
 			// Collection id to search within
 			{
 				name: 'collection',
@@ -255,7 +255,7 @@ Zotero.SearchConditions = new function(){
 				table: 'collectionItems',
 				field: 'collectionID'
 			},
-			
+
 			// Saved search to search within
 			{
 				name: 'savedSearch',
@@ -265,7 +265,7 @@ Zotero.SearchConditions = new function(){
 				},
 				special: true
 			},
-			
+
 			{
 				name: 'dateAdded',
 				operators: {
@@ -278,7 +278,7 @@ Zotero.SearchConditions = new function(){
 				table: 'items',
 				field: 'dateAdded'
 			},
-			
+
 			{
 				name: 'dateModified',
 				operators: {
@@ -291,7 +291,7 @@ Zotero.SearchConditions = new function(){
 				table: 'items',
 				field: 'dateModified'
 			},
-			
+
 			// Deprecated
 			{
 				name: 'itemTypeID',
@@ -303,7 +303,7 @@ Zotero.SearchConditions = new function(){
 				field: 'itemTypeID',
 				special: true
 			},
-			
+
 			{
 				name: 'itemType',
 				operators: {
@@ -313,7 +313,7 @@ Zotero.SearchConditions = new function(){
 				table: 'items',
 				field: 'typeName'
 			},
-			
+
 			{
 				name: 'fileTypeID',
 				operators: {
@@ -323,7 +323,7 @@ Zotero.SearchConditions = new function(){
 				table: 'itemAttachments',
 				field: 'fileTypeID'
 			},
-			
+
 			{
 				name: 'tagID',
 				operators: {
@@ -334,7 +334,7 @@ Zotero.SearchConditions = new function(){
 				field: 'tagID',
 				special: true
 			},
-			
+
 			{
 				name: 'tag',
 				operators: {
@@ -346,7 +346,7 @@ Zotero.SearchConditions = new function(){
 				table: 'itemTags',
 				field: 'name'
 			},
-			
+
 			{
 				name: 'note',
 				operators: {
@@ -358,7 +358,7 @@ Zotero.SearchConditions = new function(){
 				field: `SUBSTR(note, ${1 + Zotero.Notes.notePrefix.length}, `
 					+ `LENGTH(note) - ${Zotero.Notes.notePrefix.length + Zotero.Notes.noteSuffix.length})`
 			},
-			
+
 			{
 				name: 'childNote',
 				operators: {
@@ -370,7 +370,7 @@ Zotero.SearchConditions = new function(){
 				field: `SUBSTR(note, ${1 + Zotero.Notes.notePrefix.length}, `
 					+ `LENGTH(note) - ${Zotero.Notes.notePrefix.length + Zotero.Notes.noteSuffix.length})`
 			},
-			
+
 			{
 				name: 'creator',
 				operators: {
@@ -382,7 +382,7 @@ Zotero.SearchConditions = new function(){
 				table: 'itemCreators',
 				field: "TRIM(firstName || ' ' || lastName)"
 			},
-			
+
 			{
 				name: 'lastName',
 				operators: {
@@ -395,7 +395,7 @@ Zotero.SearchConditions = new function(){
 				field: 'lastName',
 				special: true
 			},
-			
+
 			{
 				name: 'field',
 				operators: {
@@ -412,7 +412,7 @@ Zotero.SearchConditions = new function(){
 					+ "'section','seriesNumber','issue')"),
 				template: true // mark for special handling
 			},
-			
+
 			{
 				name: 'datefield',
 				operators: {
@@ -427,7 +427,7 @@ Zotero.SearchConditions = new function(){
 				aliases: ['accessDate', 'date', 'dateDue', 'accepted'], // TEMP - NSF
 				template: true // mark for special handling
 			},
-			
+
 			{
 				name: 'year',
 				operators: {
@@ -440,7 +440,7 @@ Zotero.SearchConditions = new function(){
 				field: 'SUBSTR(value, 1, 4)',
 				special: true
 			},
-			
+
 			{
 				name: 'numberfield',
 				operators: {
@@ -456,7 +456,7 @@ Zotero.SearchConditions = new function(){
 				aliases: ['pages', 'numPages', 'numberOfVolumes', 'section', 'seriesNumber','issue'],
 				template: true // mark for special handling
 			},
-			
+
 			{
 				name: 'libraryID',
 				operators: {
@@ -468,7 +468,7 @@ Zotero.SearchConditions = new function(){
 				special: true,
 				noLoad: true
 			},
-			
+
 			{
 				name: 'key',
 				operators: {
@@ -484,7 +484,7 @@ Zotero.SearchConditions = new function(){
 					return Zotero.Utilities.isValidObjectKey(val) ? `'${val}'` : false;
 				}
 			},
-			
+
 			{
 				name: 'itemID',
 				operators: {
@@ -496,7 +496,7 @@ Zotero.SearchConditions = new function(){
 				special: true,
 				noLoad: true
 			},
-			
+
 			{
 				name: 'annotation',
 				operators: {
@@ -506,7 +506,7 @@ Zotero.SearchConditions = new function(){
 				table: 'annotations',
 				field: 'text'
 			},
-			
+
 			{
 				name: 'fulltextWord',
 				operators: {
@@ -520,7 +520,7 @@ Zotero.SearchConditions = new function(){
 				},
 				special: true
 			},
-			
+
 			{
 				name: 'fulltextContent',
 				operators: {
@@ -529,7 +529,7 @@ Zotero.SearchConditions = new function(){
 				},
 				special: false
 			},
-			
+
 			{
 				name: 'tempTable',
 				operators: {
@@ -537,7 +537,7 @@ Zotero.SearchConditions = new function(){
 				}
 			}
 		];
-		
+
 		// Index conditions by name and aliases
 		_conditions = {};
 		for (var i in conditions) {
@@ -557,19 +557,19 @@ Zotero.SearchConditions = new function(){
 			}
 			_conditions[conditions[i]['name']] = conditions[i];
 		}
-		
+
 		_standardConditions = [];
-		
+
 		var baseMappedFields = Zotero.ItemFields.getBaseMappedFields();
 		var locale = Zotero.locale;
-		
+
 		// Separate standard conditions for menu display
 		for (var i in _conditions){
 			var fieldID = false;
 			if (['field', 'datefield', 'numberfield'].indexOf(_conditions[i]['name']) != -1) {
 				fieldID = Zotero.ItemFields.getID(i);
 			}
-			
+
 			// If explicitly special...
 			if (_conditions[i]['special'] ||
 				// or a template master (e.g. 'field')...
@@ -582,7 +582,7 @@ Zotero.SearchConditions = new function(){
 				// ...then skip
 				continue;
 			}
-			
+
 			let localized = self.getLocalizedName(i);
 			// Hack to use a different name for "issue" in French locale,
 			// where 'number' and 'issue' are translated the same
@@ -590,7 +590,7 @@ Zotero.SearchConditions = new function(){
 			if (Zotero.ItemFields.getName(fieldID) == 'issue' && locale.substr(0, 2) == 'fr') {
 				localized = "Num\u00E9ro (p\u00E9riodique)";
 			}
-			
+
 			_standardConditions.push({
 				name: i,
 				localized: localized,
@@ -598,22 +598,22 @@ Zotero.SearchConditions = new function(){
 				flags: _conditions[i]['flags']
 			});
 		}
-		
+
 		var collation = Zotero.getLocaleCollation();
 		_standardConditions.sort(function(a, b) {
 			return collation.compareString(1, a.localized, b.localized);
 		});
 	});
-	
-	
+
+
 	/*
 	 * Get condition data
 	 */
 	function get(condition){
 		return _conditions[condition];
 	}
-	
-	
+
+
 	/*
 	 * Returns array of possible conditions
 	 *
@@ -623,38 +623,38 @@ Zotero.SearchConditions = new function(){
 		// TODO: return copy instead
 		return _standardConditions;
 	}
-	
-	
+
+
 	/*
 	 * Check if an operator is valid for a given condition
 	 */
 	function hasOperator(condition, operator){
 		var [condition, mode] = this.parseCondition(condition);
-		
+
 		if (!_conditions) {
 			throw new Zotero.Exception.UnloadedDataException("Search conditions not yet loaded");
 		}
-		
+
 		if (!_conditions[condition]){
 			let e = new Error("Invalid condition '" + condition + "' in hasOperator()");
 			e.name = "ZoteroInvalidDataError";
 			throw e;
 		}
-		
+
 		if (!operator && typeof _conditions[condition]['operators'] == 'undefined'){
 			return true;
 		}
-		
+
 		return !!_conditions[condition]['operators'][operator];
 	}
-	
-	
+
+
 	function getLocalizedName(str) {
 		// TEMP
 		if (str == 'itemType') {
 			str = 'itemTypeID';
 		}
-		
+
 		try {
 			return Zotero.getString('searchConditions.' + str)
 		}
@@ -662,8 +662,8 @@ Zotero.SearchConditions = new function(){
 			return Zotero.ItemFields.getLocalizedString(str);
 		}
 	}
-	
-	
+
+
 	/**
 	 * Compare two API JSON condition objects
 	 */
@@ -672,8 +672,8 @@ Zotero.SearchConditions = new function(){
 			&& data1.operator === data2.operator
 			&& data1.value === data2.value;
 	}
-	
-	
+
+
 	/*
 	 * Parses a search into words and "double-quoted phrases"
 	 *
@@ -684,13 +684,13 @@ Zotero.SearchConditions = new function(){
 	function parseSearchString(str) {
 		var parts = str.split(/\s*("[^"]*")\s*|"\s|\s"|^"|"$|'\s|\s'|^'|'$|\s/m);
 		var parsed = [];
-		
+
 		for (var i in parts) {
 			var part = parts[i];
 			if (!part || !part.length) {
 				continue;
 			}
-			
+
 			if (part.charAt(0)=='"' && part.charAt(part.length-1)=='"') {
 				parsed.push({
 					text: part.substring(1, part.length-1),
@@ -704,11 +704,11 @@ Zotero.SearchConditions = new function(){
 				});
 			}
 		}
-		
+
 		return parsed;
 	}
-	
-	
+
+
 	function parseCondition(condition){
 		var mode = false;
 		var pos = condition.indexOf('/');
@@ -716,7 +716,7 @@ Zotero.SearchConditions = new function(){
 			mode = condition.substr(pos+1);
 			condition = condition.substr(0, pos);
 		}
-		
+
 		return [condition, mode];
 	}
 }

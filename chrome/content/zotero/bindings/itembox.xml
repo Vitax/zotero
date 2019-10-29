@@ -2415,7 +2415,7 @@
                                 let htmlNS = 'http://www.w3.org/1999/xhtml';
 
                                 // check if an expression of concern exists for the given item
-                                let show = Zotero.ExpressionsOfConcern.hasExpressionsOfConcern(item);
+                                let show = Zotero.ExpressionsOfConcern.hasExpressionOfConcern(item);
                                 if (!show) {
                                     // make expression of concern div visible
                                     this._id('expression-of-concern-box').hidden = true;

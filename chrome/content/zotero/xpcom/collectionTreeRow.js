@@ -1,25 +1,25 @@
 /*
     ***** BEGIN LICENSE BLOCK *****
-    
+
     Copyright © 2015 Center for History and New Media
                      George Mason University, Fairfax, Virginia, USA
                      http://zotero.org
-    
+
     This file is part of Zotero.
-    
+
     Zotero is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    
+
     Zotero is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
-    
+
     You should have received a copy of the GNU Affero General Public License
     along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
+
     ***** END LICENSE BLOCK *****
 */
 
@@ -41,28 +41,31 @@ Zotero.CollectionTreeRow.prototype.__defineGetter__('id', function () {
 		case 'group':
 		case 'feed':
 			return 'L' + this.ref.libraryID;
-		
+
 		case 'collection':
 			return 'C' + this.ref.id;
-		
+
 		case 'search':
 			return 'S' + this.ref.id;
-		
+
 		case 'duplicates':
 			return 'D' + this.ref.libraryID;
-		
+
 		case 'unfiled':
 			return 'U' + this.ref.libraryID;
-		
+
 		case 'retracted':
 			return 'R' + this.ref.libraryID;
-		
+
+		case 'expressionOfConcern':
+			return 'EOC' + this.ref.libraryID;
+
 		case 'publications':
 			return 'P' + this.ref.libraryID;
-			
+
 		case 'trash':
 			return 'T' + this.ref.libraryID;
-		
+
 		case 'header':
 			switch (this.ref.id) {
 				case 'group-libraries-header':
@@ -72,7 +75,7 @@ Zotero.CollectionTreeRow.prototype.__defineGetter__('id', function () {
 			}
 			break;
 	}
-	
+
 	return '';
 });
 
@@ -107,8 +110,8 @@ Zotero.CollectionTreeRow.prototype.isRetracted = function () {
 	return this.type == 'retracted';
 }
 
-Zotero.CollectionTreeRow.prototype.hasExpressionsOfConcern = function () {
-	return this.type == 'expressionsOfConcern';
+Zotero.CollectionTreeRow.prototype.isExpressionsOfConcern = function () {
+	return this.type == 'expressionOfConcern';
 }
 
 Zotero.CollectionTreeRow.prototype.isTrash = function()
@@ -222,19 +225,19 @@ Zotero.CollectionTreeRow.prototype.getName = function()
 	switch (this.type) {
 		case 'library':
 			return Zotero.getString('pane.collections.library');
-		
+
 		case 'publications':
 			return Zotero.getString('pane.collections.publications');
-		
+
 		case 'trash':
 			return Zotero.getString('pane.collections.trash');
-		
+
 		case 'header':
 			return this.ref.label;
-		
+
 		case 'separator':
 			return "";
-		
+
 		default:
 			return this.ref.name;
 	}
@@ -246,13 +249,13 @@ Zotero.CollectionTreeRow.prototype.getItems = Zotero.Promise.coroutine(function*
 		// Fake results if this is a shared library
 		case 'share':
 			return this.ref.getAll();
-		
+
 		case 'bucket':
 			return this.ref.getItems();
 	}
-	
+
 	var ids = yield this.getSearchResults();
-	
+
 	// Filter out items that exist in the items table (where search results come from) but that haven't
 	// yet been registered. This helps prevent unloaded-data crashes when switching collections while
 	// items are being added (e.g., during sync).
@@ -262,11 +265,11 @@ Zotero.CollectionTreeRow.prototype.getItems = Zotero.Promise.coroutine(function*
 		let diff = len - ids.length;
 		Zotero.debug(`Not showing ${diff} unloaded item${diff != 1 ? 's' : ''}`);
 	}
-	
+
 	if (!ids.length) {
 		return []
 	}
-	
+
 	return Zotero.Items.getAsync(ids);
 });
 
@@ -274,13 +277,13 @@ Zotero.CollectionTreeRow.prototype.getSearchResults = Zotero.Promise.coroutine(f
 	if (Zotero.CollectionTreeCache.lastTreeRow && Zotero.CollectionTreeCache.lastTreeRow.id !== this.id) {
 		Zotero.CollectionTreeCache.clear();
 	}
-	
+
 	if(!Zotero.CollectionTreeCache.lastResults) {
 		var s = yield this.getSearchObject();
 		Zotero.CollectionTreeCache.lastResults = yield s.search();
 		Zotero.CollectionTreeCache.lastTreeRow = this;
 	}
-	
+
 	if(asTempTable) {
 		if(!Zotero.CollectionTreeCache.lastTempTable) {
 			Zotero.CollectionTreeCache.lastTempTable = yield Zotero.Search.idsToTempTable(Zotero.CollectionTreeCache.lastResults);
@@ -299,13 +302,13 @@ Zotero.CollectionTreeRow.prototype.getSearchObject = Zotero.Promise.coroutine(fu
 	if (Zotero.CollectionTreeCache.lastTreeRow && Zotero.CollectionTreeCache.lastTreeRow.id !== this.id) {
 		Zotero.CollectionTreeCache.clear();
 	}
-	
+
 	if(Zotero.CollectionTreeCache.lastSearch) {
 		return Zotero.CollectionTreeCache.lastSearch;
-	}	
-	
+	}
+
 	var includeScopeChildren = false;
-	
+
 	// Create/load the inner search
 	if (this.ref instanceof Zotero.Search) {
 		var s = this.ref;
@@ -351,27 +354,27 @@ Zotero.CollectionTreeRow.prototype.getSearchObject = Zotero.Promise.coroutine(fu
 			throw new Error('Invalid search mode ' + this.type);
 		}
 	}
-	
+
 	// Create the outer (filter) search
 	var s2 = new Zotero.Search();
 	s2.addCondition('libraryID', 'is', this.ref.libraryID);
-	
+
 	if (this.isTrash()) {
 		s2.addCondition('deleted', 'true');
 	}
 	s2.setScope(s, includeScopeChildren);
-	
+
 	if (this.searchText) {
 		var cond = 'quicksearch-' + Zotero.Prefs.get('search.quicksearch-mode');
 		s2.addCondition(cond, 'contains', this.searchText);
 	}
-	
+
 	if (this.tags){
 		for (let tag of this.tags) {
 			s2.addCondition('tag', 'is', tag);
 		}
 	}
-	
+
 	Zotero.CollectionTreeCache.lastTreeRow = this;
 	Zotero.CollectionTreeCache.lastSearch = s2;
 	return s2;
@@ -392,7 +395,7 @@ Zotero.CollectionTreeRow.prototype.getTags = async function (types, tagIDs) {
 		// TODO: implement?
 		case 'share':
 			return [];
-		
+
 		case 'bucket':
 			return [];
 	}
@@ -421,12 +424,12 @@ Zotero.CollectionTreeRow.prototype.isSearchMode = function() {
 		case 'trash':
 			return true;
 	}
-	
+
 	// Quicksearch
 	if (this.searchText != '') {
 		return true;
 	}
-	
+
 	// Tag filter
 	if (this.tags && this.tags.size) {
 		return true;

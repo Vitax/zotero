@@ -3765,7 +3765,7 @@ Zotero.Item.prototype.getImageSrcWithTags = Zotero.Promise.coroutine(function* (
 	var uri = this.getImageSrc();
 
 	var retracted = Zotero.Retractions.isRetracted(this);
-	var hasExpressionOfConcern = Zotero.ExpressionsOfConcern.hasExpressionsOfConcern(this);
+	var hasExpressionOfConcern = Zotero.ExpressionsOfConcern.hasExpressionOfConcern(this);
 
 	var tags = this.getTags();
 	if (!tags.length && !retracted && !hasExpressionOfConcern) {

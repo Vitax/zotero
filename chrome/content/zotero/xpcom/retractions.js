@@ -304,7 +304,7 @@ Zotero.Retractions = {
 		// Update Retracted Items virtual collection
 		if (Zotero.Libraries.exists(libraryID)
 			// Changed
-			&& (previous != current
+			&& (previous !== current
 				// Explicitly hidden
 				|| (current && !Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(libraryID, 'retracted')))) {
 			let promises = [];

@@ -1622,7 +1622,7 @@ Zotero.Utilities.Internal = {
 			case 'retracted':
 				var prefKey = 'retractedLibraries';
 				break;
-			case 'expressionsOfConcern':
+			case 'expressionOfConcern':
 				var prefKey = 'expressionsOfConcernLibraries'
 				break
 
@@ -1664,9 +1664,9 @@ Zotero.Utilities.Internal = {
 			case 'retracted':
 				var prefKey = 'retractedLibraries';
 				break;
-			case 'expressionsOfConcern':
+			case 'expressionOfConcern':
 				var prefKey = 'expressionsOfConcernLibraries'
-				break
+				break;
 
 			default:
 				throw new Error("Invalid virtual collection type '" + type + "'");

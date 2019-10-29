@@ -984,21 +984,21 @@ var ZoteroPane = new function () {
 
 
 	this.setVirtual = Zotero.Promise.coroutine(function* (libraryID, type, show, select) {
-		let treeViewID;
 		switch (type) {
 			case 'duplicates':
-				treeViewID = 'D' + libraryID;
+				var treeViewID = 'D' + libraryID;
 				break;
 
 			case 'unfiled':
-				treeViewID = 'U' + libraryID;
+				var treeViewID = 'U' + libraryID;
 				break;
 
 			case 'retracted':
-				treeViewID = 'R' + libraryID;
+				var treeViewID = 'R' + libraryID;
 				break;
-			case 'expressionsOfConcern':
-				treeViewID = 'EOC' + libraryID;
+			case 'expressionOfConcern':
+				Zotero.debug('inside eoc condition !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+				var treeViewID = 'EOC' + libraryID;
 				break;
 
 			default:
@@ -1022,7 +1022,7 @@ var ZoteroPane = new function () {
 		else if (type == 'retracted') {
 			yield this.collectionsView.selectByID("L" + libraryID);
 		}
-		else if (type == 'expressionsOfConcern') {
+		else if (type == 'expressionOfConcern') {
 			yield this.collectionsView.selectByID("EOC" + libraryID);
 		}
 		// Select next appropriate row after removal
@@ -1766,8 +1766,9 @@ var ZoteroPane = new function () {
 		else if (collectionTreeRow.isSearch()
 			|| collectionTreeRow.isUnfiled()
 			|| collectionTreeRow.isRetracted()
+			|| collectionTreeRow.isExpressionsOfConcern()
 			|| collectionTreeRow.isDuplicates()
-			|| collectionTreeRow.hasExpressionsOfConcern()) {
+		) {
 			if (!force) {
 				return;
 			}
@@ -1846,8 +1847,9 @@ var ZoteroPane = new function () {
 			this.setVirtual(collectionTreeRow.ref.libraryID, 'retracted', false);
 			return;
 		}
-		else if (collectionTreeRow.hasExpressionsOfConcern()) {
-			this.setVirtual(collectionTreeRow.ref.libraryID, 'expressionsOfConcern', false);
+		// Remove virtual expressions of concern collection
+		else if (collectionTreeRow.isExpressionsOfConcern()) {
+			this.setVirtual(collectionTreeRow.ref.libraryID, 'expressionOfConcern', false);
 			return;
 		}
 
@@ -2398,7 +2400,7 @@ var ZoteroPane = new function () {
 		{
 			id: "showExpressionsOfConcern",
 			oncommand: () => {
-				this.setVirtual(this.getSelectedLibraryID(), 'expressionsOfConcern', true, true);
+				this.setVirtual(this.getSelectedLibraryID(), 'expressionOfConcern', true, true);
 			}
 		},
 		{
@@ -2603,7 +2605,12 @@ var ZoteroPane = new function () {
 		else if (collectionTreeRow.isTrash()) {
 			show = ['emptyTrash'];
 		}
-		else if (collectionTreeRow.isDuplicates() || collectionTreeRow.isUnfiled() || collectionTreeRow.isRetracted()) {
+		else if (
+			collectionTreeRow.isDuplicates()
+			|| collectionTreeRow.isUnfiled()
+			|| collectionTreeRow.isRetracted()
+			|| collectionTreeRow.isExpressionsOfConcern()
+		) {
 			show = ['deleteCollection'];
 
 			m.deleteCollection.setAttribute('label', Zotero.getString('general.hide'));
@@ -2637,10 +2644,10 @@ var ZoteroPane = new function () {
 			let retracted = Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(
 				libraryID, 'retracted'
 			);
-			let expressionsOfConcern = Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(
-				libraryID, 'expressionsOfConcern'
+			let hasExpressionsOfConcern = Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(
+				libraryID, 'expressionOfConcern'
 			);
-			if (!duplicates || !unfiled || !retracted) {
+			if (!duplicates || !unfiled || !retracted || !hasExpressionsOfConcern) {
 				if (!library.archived) {
 					show.push('sep2');
 				}
@@ -2653,7 +2660,7 @@ var ZoteroPane = new function () {
 				if (!retracted) {
 					show.push('showRetracted');
 				}
-				if (!expressionsOfConcern) {
+				if (!hasExpressionsOfConcern) {
 					show.push('showExpressionsOfConcern');
 				}
 			}
@@ -2675,7 +2682,8 @@ var ZoteroPane = new function () {
 			&& !collectionTreeRow.editable
 			&& !collectionTreeRow.isDuplicates()
 			&& !collectionTreeRow.isUnfiled()
-			&& !collectionTreeRow.isRetracted()) {
+			&& !collectionTreeRow.isRetracted()
+			&& !collectionTreeRow.isExpressionsOfConcern()) {
 			disable.push(
 				'newSubcollection',
 				'editSelectedCollection',
@@ -3237,6 +3245,10 @@ var ZoteroPane = new function () {
 
 			// Ignore double-clicks on Unfiled/Retracted Items source rows
 			if (collectionTreeRow.isUnfiled() || collectionTreeRow.isRetracted()) {
+				return;
+			}
+
+			if (collectionTreeRow.isUnfiled() || collectionTreeRow.hasExpressionsOfConcern()) {
 				return;
 			}
 
@@ -4360,8 +4372,8 @@ var ZoteroPane = new function () {
 
 		var title = Zotero.getString('pane.item.attachments.fileNotFound.title');
 		var text = Zotero.getString(
-				'pane.item.attachments.fileNotFound.text1' + (path ? '.path' : '')
-			)
+			'pane.item.attachments.fileNotFound.text1' + (path ? '.path' : '')
+		)
 			+ (path ? "\n\n" + path : '')
 			+ "\n\n"
 			+ Zotero.getString(
@@ -4986,7 +4998,7 @@ var ZoteroPane = new function () {
 		}
 
 		this.updateToolbarPosition();
-	}
+	};
 
 
 	/**
@@ -5001,7 +5013,7 @@ var ZoteroPane = new function () {
 			var el = document.getElementById(id);
 			if (!el) return;
 			var elValues = serializedValues[id];
-			for(var attr in elValues) {
+			for (var attr in elValues) {
 				// Ignore persisted collapsed state for collection and item pane splitters, since
 				// people close them by accident and don't know how to get them back
 				// TODO: Add a hidden pref to allow them to stay closed if people really want that?

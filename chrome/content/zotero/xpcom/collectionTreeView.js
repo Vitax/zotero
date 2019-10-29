@@ -180,7 +180,7 @@ Zotero.CollectionTreeView.prototype.refresh = Zotero.Promise.coroutine(function*
 	}
 	this._virtualCollectionLibraries.unfiled = Zotero.Utilities.Internal.getVirtualCollectionState('unfiled');
 	this._virtualCollectionLibraries.retracted = Zotero.Utilities.Internal.getVirtualCollectionState('retracted');
-	this._virtualCollectionLibraries.expressionsOfConcern = Zotero.Utilities.Internal.getVirtualCollectionState('expressionsOfConcern');
+	this._virtualCollectionLibraries.expressionOfConcern = Zotero.Utilities.Internal.getVirtualCollectionState('expressionOfConcern');
 
 	var oldCount = this.rowCount || 0;
 	var newRows = [];
@@ -303,7 +303,7 @@ Zotero.CollectionTreeView.prototype.selectWait = Zotero.Promise.method(function 
 	if (this.selection.currentIndex == row) {
 		return;
 	}
-	
+
 	var promise = this.waitForSelect();
 	this.selection.select(row);
 	return promise;
@@ -790,7 +790,7 @@ Zotero.CollectionTreeView.prototype.getImageSrc = function (row, col) {
 		case 'retracted':
 			return "chrome://zotero/skin/cross" + suffix + ".png";
 
-		case 'expressionsOfConcern':
+		case 'expressionOfConcern':
 			return "chrome://zotero/skin/circle" + suffix + ".png";
 	}
 
@@ -825,6 +825,7 @@ Zotero.CollectionTreeView.prototype.isContainerEmpty = function (row) {
 			&& this._virtualCollectionLibraries.unfiled[libraryID] === false
 			// Retracted Items not shown
 			&& this._virtualCollectionLibraries.retracted[libraryID] === false
+			&& this._virtualCollectionLibraries.expressionOfConcern[libraryID] === false
 			&& this.hideSources.indexOf('trash') != -1;
 	}
 	if (treeRow.isCollection()) {
@@ -1284,7 +1285,7 @@ Zotero.CollectionTreeView.prototype.selectAfterRowRemoval = function (row) {
 	if (row >= this.rowCount) {
 		row = this.rowCount - 1;
 	}
-	
+
 
 	// Make sure the selection doesn't land on a separator (e.g. deleting last feed)
 	while (row >= 0 && !this.isSelectable(row)) {
@@ -1322,11 +1323,14 @@ Zotero.CollectionTreeView.prototype._expandRow = Zotero.Promise.coroutine(functi
 		// Virtual collections default to showing if not explicitly hidden
 		var showDuplicates = this.hideSources.indexOf('duplicates') == -1
 			&& this._virtualCollectionLibraries.duplicates[libraryID] !== false;
+
 		var showUnfiled = this._virtualCollectionLibraries.unfiled[libraryID] !== false;
 		var showRetracted = this._virtualCollectionLibraries.retracted[libraryID] !== false
 			&& Zotero.Retractions.libraryHasRetractedItems(libraryID);
-		var showExpressionsOfConcern = this._virtualCollectionLibraries.expressionsOfConcern[libraryID] !== false
-			&& Zotero.ExpressionsOfConcern.libraryHasExpressionsOfConcern(libraryID);
+
+		var showExpressionsOfConcern = (this._virtualCollectionLibraries.expressionOfConcern[libraryID] !== false
+			&& Zotero.ExpressionsOfConcern.libraryHasExpressionsOfConcern(libraryID));
+
 		var showPublications = libraryID == Zotero.Libraries.userLibraryID;
 		var showTrash = this.hideSources.indexOf('trash') == -1;
 	}
@@ -1453,9 +1457,13 @@ Zotero.CollectionTreeView.prototype._expandRow = Zotero.Promise.coroutine(functi
 		s.libraryID = libraryID;
 		s.name = Zotero.getString('pane.collections.expressionsOfConcern');
 		s.addCondition('libraryID', 'is', libraryID);
-		s.addCondition('expressionsOfConcern', 'true');
+		s.addCondition('expressionOfConcern', 'true');
 
-		this._addRowToArray(rows, new Zotero.CollectionTreeRow(this, 'expressionsOfConcern', s, level + 1), row + 1 + newRows);
+		this._addRowToArray(
+			rows,
+			new Zotero.CollectionTreeRow(this, 'expressionOfConcern', s, level + 1),
+			row + 1 + newRows
+		);
 		newRows++;
 	}
 
