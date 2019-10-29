@@ -54,7 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Duplumok listázása">
 <!ENTITY zotero.collections.showUnfiledItems "Besorolatlan elemek mutatása">
 <!ENTITY zotero.collections.showRetractedItems "Visszavont elemek mutatása">
-<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern "Show Items with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Forrás típusa">
 <!ENTITY zotero.items.type_column "Forrás típusa">

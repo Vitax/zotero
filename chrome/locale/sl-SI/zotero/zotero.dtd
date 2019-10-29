@@ -54,7 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Pokaži dvojnike">
 <!ENTITY zotero.collections.showUnfiledItems "Pokaži nerazvrščene vnose">
 <!ENTITY zotero.collections.showRetractedItems "Pokaži povlečene vnose">
-<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern "Show Items with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Vrsta vnosa">
 <!ENTITY zotero.items.type_column "Vrsta vnosa">

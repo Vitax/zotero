@@ -54,7 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Vis duplikat">
 <!ENTITY zotero.collections.showUnfiledItems "Vis uplasserte objekt">
 <!ENTITY zotero.collections.showRetractedItems "Show Retracted Items">
-<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern "Show Items with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Type">
 <!ENTITY zotero.items.type_column "Type">

@@ -54,7 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Показать дубликаты">
 <!ENTITY zotero.collections.showUnfiledItems "Показать неподшитые документы">
 <!ENTITY zotero.collections.showRetractedItems "Показать отозванные публикации">
-<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern "Show Items with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Тип документа">
 <!ENTITY zotero.items.type_column "Тип документа">

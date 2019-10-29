@@ -54,7 +54,7 @@
 <!ENTITY zotero.toolbar.duplicate.label "Näidata duplikaate">
 <!ENTITY zotero.collections.showUnfiledItems "Teemata kirjed">
 <!ENTITY zotero.collections.showRetractedItems "Show Retracted Items">
-<!ENTITY zotero.collections.showItemsWithExpressionOfConcern        "Show Item with Expression of Concern">
+<!ENTITY zotero.collections.showItemsWithExpressionOfConcern "Show Items with Expression of Concern">
 
 <!ENTITY zotero.items.itemType "Kirje tüüp">
 <!ENTITY zotero.items.type_column "Kirje tüüp">
