@@ -52,9 +52,7 @@ Zotero.ExpressionsOfConcern = {
 			const queryString = "ALTER TABLE expressionsOfConcern ADD COLUMN flag INT DEFAULT 0";
 			await Zotero.DB.queryAsync(queryString);
 		}
-		catch (error) {
-			Zotero.debug("Error while altering ExpressionsOfConcern table: " + error.toString());
-		}
+		catch (error) { }
 
 		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionOfConcern', 20);
 
@@ -280,7 +278,7 @@ Zotero.ExpressionsOfConcern = {
 	/**
 	 *
 	 * @param libraryID
-	 * @returns {Promise<boolean>}
+	 * @returns {boolean}
 	 */
 	libraryHasExpressionsOfConcern: function (libraryID) {
 		if (

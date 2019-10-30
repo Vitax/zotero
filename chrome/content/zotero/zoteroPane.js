@@ -997,7 +997,6 @@ var ZoteroPane = new function () {
 				var treeViewID = 'R' + libraryID;
 				break;
 			case 'expressionOfConcern':
-				Zotero.debug('inside eoc condition !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
 				var treeViewID = 'EOC' + libraryID;
 				break;
 
@@ -1023,7 +1022,7 @@ var ZoteroPane = new function () {
 			yield this.collectionsView.selectByID("L" + libraryID);
 		}
 		else if (type == 'expressionOfConcern') {
-			yield this.collectionsView.selectByID("EOC" + libraryID);
+			yield this.collectionsView.selectByID("L" + libraryID);
 		}
 		// Select next appropriate row after removal
 		else {
