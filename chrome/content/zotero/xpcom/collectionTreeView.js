@@ -583,8 +583,7 @@ Zotero.CollectionTreeView.prototype._addSortedRow = Zotero.Promise.coroutine(fun
 					// Fast forward through subcollections
 					while (rowLevel > level) {
 						beforeRow = ++i;
-						if (i == this.rowCount || !this.getRow(i)
-								.isCollection()) {
+						if (i == this.rowCount || !this.getRow(i).isCollection()) {
 							break loop;
 						}
 						treeRow = this.getRow(i);
@@ -710,12 +709,12 @@ Zotero.CollectionTreeView.prototype.unregister = function () {
 };
 
 
-// //////////////////////////////////////////////////////////////////////////////
-// /
-// /  nsITreeView functions
-// /  http://www.xulplanet.com/references/xpcomref/ifaces/nsITreeView.html
-// /
-// //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+///
+///  nsITreeView functions
+///  http://www.xulplanet.com/references/xpcomref/ifaces/nsITreeView.html
+///
+////////////////////////////////////////////////////////////////////////////////
 
 Zotero.CollectionTreeView.prototype.getCellText = function (row, column) {
 	var obj = this.getRow(row);
@@ -1045,11 +1044,11 @@ Zotero.CollectionTreeView.prototype.expandToCollection = Zotero.Promise.coroutin
 });
 
 
-// //////////////////////////////////////////////////////////////////////////////
-// /
-// /  Additional functions for managing data in the tree
-// /
-// //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+///
+///  Additional functions for managing data in the tree
+///
+////////////////////////////////////////////////////////////////////////////////
 Zotero.CollectionTreeView.prototype.selectByID = Zotero.Promise.coroutine(function* (id) {
 	var type = id[0];
 	id = parseInt(('' + id).substr(1));
@@ -1257,8 +1256,9 @@ Zotero.CollectionTreeView.prototype.deleteSelection = Zotero.Promise.coroutine(f
 	var end = new Object();
 	for (var i = 0, len = this.selection.getRangeCount(); i < len; i++) {
 		this.selection.getRangeAt(i, start, end);
-		for (var j = start.value; j <= end.value; j++) if (!this.getRow(j)
-				.isLibrary()) rows.push(j);
+		for (var j = start.value; j <= end.value; j++) {
+			if (!this.getRow(j).isLibrary()) rows.push(j);
+		}
 	}
 
 	// iterate and erase...
@@ -1577,12 +1577,12 @@ Zotero.CollectionTreeView.prototype._saveOpenStates = Zotero.Promise.coroutine(f
 });
 
 
-// //////////////////////////////////////////////////////////////////////////////
-// /
-// /  Command Controller:
-// /		for Select All, etc.
-// /
-// //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+///
+///  Command Controller:
+///		for Select All, etc.
+///
+////////////////////////////////////////////////////////////////////////////////
 
 Zotero.CollectionTreeCommandController = function (tree) {
 	this.tree = tree;
@@ -1600,13 +1600,13 @@ Zotero.CollectionTreeCommandController.prototype.doCommand = function (cmd) {
 Zotero.CollectionTreeCommandController.prototype.onEvent = function (evt) {
 };
 
-// //////////////////////////////////////////////////////////////////////////////
-// /
-// /  Drag-and-drop functions:
-// /		canDrop() and drop() are for nsITreeView
-// /		onDragStart() and onDrop() are for HTML 5 Drag and Drop
-// /
-// //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+///
+///  Drag-and-drop functions:
+///		canDrop() and drop() are for nsITreeView
+///		onDragStart() and onDrop() are for HTML 5 Drag and Drop
+///
+////////////////////////////////////////////////////////////////////////////////
 
 
 /*
@@ -2055,10 +2055,12 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 						continue;
 					}
 				}
-				else if (!options.childFileAttachments
+				else {
+					if (!options.childFileAttachments
 						|| (!targetTreeRow.filesEditable && !targetTreeRow.isPublications())) {
-					Zotero.debug("Skipping child file attachment on drag");
-					continue;
+						Zotero.debug("Skipping child file attachment on drag");
+						continue;
+					}
 				}
 				yield Zotero.Attachments.copyAttachmentToLibrary(attachment, targetLibraryID, newItemID);
 			}
@@ -2273,8 +2275,7 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 
 		// Add items to target collection
 		if (targetCollectionID) {
-			let ids = newIDs.filter(itemID => Zotero.Items.get(itemID)
-				.isTopLevelItem());
+			let ids = newIDs.filter(itemID => Zotero.Items.get(itemID).isTopLevelItem());
 			yield Zotero.DB.executeTransaction(function* () {
 				let collection = yield Zotero.Collections.getAsync(targetCollectionID);
 				yield collection.addItems(ids);
@@ -2373,11 +2374,11 @@ Zotero.CollectionTreeView.prototype.drop = Zotero.Promise.coroutine(function* (r
 });
 
 
-// //////////////////////////////////////////////////////////////////////////////
-// /
-// /  Functions for nsITreeView that we have to stub out.
-// /
-// //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+///
+///  Functions for nsITreeView that we have to stub out.
+///
+////////////////////////////////////////////////////////////////////////////////
 
 Zotero.CollectionTreeView.prototype.isSorted = function () {
 	return false;

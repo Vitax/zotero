@@ -5,7 +5,6 @@ describe("ExpressionsOfConcern", function () {
 	let queueItemStub;
 	let expressionOfConcernURL = "https://www.ncbi.nlm.nih.gov/pubmed/10071907";
 
-
 	before(async function () {
 		userLibraryID = Zotero.Libraries.userLibraryID;
 		window = await loadZoteroPane();
@@ -86,7 +85,7 @@ describe("ExpressionsOfConcern", function () {
 			assert.isFalse(expressionOfConcernBox.hidden);
 
 			// Lookup for new items to check expression of concern
-			let eoc = await Zotero.ExpressionsOfConcern.lookupUrlForEocs(item.id);
+			let eoc = await Zotero.ExpressionsOfConcern.lookupUrlForEoCs(item.id);
 
 			await Zotero.ExpressionsOfConcern.scrapeExpressionsOfConcern([eoc]);
 			let exists = await Zotero.DB.queryAsync(

@@ -558,7 +558,9 @@ var ZoteroPane = new function () {
 			if ((Zotero.isWin && event.keyCode == 17 && !event.altKey)
 				|| (!Zotero.isWin && event.keyCode == 18 && !event.ctrlKey)
 				&& !event.shiftKey && !event.metaKey) {
-				this.highlightTimer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+
+				this.highlightTimer = Components.classes["@mozilla.org/timer;1"]
+					.createInstance(Components.interfaces.nsITimer);
 				// {} implements nsITimerCallback
 				this.highlightTimer.initWithCallback({
 					notify: ZoteroPane_Local.setHighlightedRowsCallback
@@ -586,6 +588,7 @@ var ZoteroPane = new function () {
 					this.highlightTimer = null;
 				}
 				ZoteroPane_Local.collectionsView.setHighlightedRows();
+				return;
 			}
 		}
 	}
@@ -1617,7 +1620,6 @@ var ZoteroPane = new function () {
 			}
 		}
 	};
-
 
 	/**
 	 * Update the <command> elements that control the shortcut keys and the enabled state of the
@@ -3572,7 +3574,6 @@ var ZoteroPane = new function () {
 		});
 	});
 
-
 	this.addAttachmentFromDialog = async function (link, parentItemID) {
 		if (!this.canEdit()) {
 			this.displayCannotEditLibraryMessage();
@@ -3686,7 +3687,6 @@ var ZoteroPane = new function () {
 			Zotero.RecognizePDF.autoRecognizeItems(addedItems);
 		}
 	};
-
 
 	this.findPDFForSelectedItems = async function () {
 		if (!this.canEdit()) {

@@ -56,20 +56,7 @@ Zotero.ExpressionsOfConcern = {
 
 		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionOfConcern', 20);
 
-		/**
-		 * TODO: Load up all items and look for expressions of concern here
-		 *        - call get all items
-		 *        - look into the items for url fields
-		 *        - look into the dom
-		 *        - extract expressions of concerns
-		 */
-		const items = await this.lookupUrlsForEocs();
-		if (items) {
-			this.scrapeExpressionsOfConcern(items);
-		}
-
 		let expressionsOfConcern = await this._getEntries();
-
 		for (let row of expressionsOfConcern) {
 			this._expressionsOfConcern.set(row.itemID, row.flag);
 			if (!row.deleted && row.flag !== this.FLAG.HIDDEN) {
@@ -81,6 +68,8 @@ Zotero.ExpressionsOfConcern = {
 			}
 		}
 
+		this._initialized = true;
+
 		/**
 		 * Idea after everything basic functionality works:
 		 *        - Setup a Database with a local service which scrapes PubMed and other pages for publications with expressions of concern
@@ -89,8 +78,17 @@ Zotero.ExpressionsOfConcern = {
 		 *        - Request the Hash form the database and compare the local cache file hash with it
 		 *        - Get new Database if they do not match !
 		 */
+		this._updateFromInternet();
+	},
 
-		this._initialized = true;
+	_updateFromInternet: async function() {
+		const items = await this.lookupUrlsForEoCs();
+		if (items.length) {
+			this.scrapeExpressionsOfConcern(items)
+				.then(() => {
+					this._checkQueuedItems();
+				});
+		}
 	},
 
 	_resetState: function () {
@@ -142,7 +140,6 @@ Zotero.ExpressionsOfConcern = {
 	_addEntry: async function (item, data) {
 		const queryString = "INSERT OR IGNORE INTO expressionsOfConcern (itemID, data) VALUES (?, ?)";
 		this._expressionsOfConcern.set(item.id, this.FLAG.NORMAL);
-		this._queuedItemIDs.add(item.id);
 		await Zotero.DB.queryAsync(queryString, [item.id, JSON.stringify(data)]);
 
 		let flag = this._expressionsOfConcern.get(item.id);
@@ -263,9 +260,12 @@ Zotero.ExpressionsOfConcern = {
 	_checkQueuedItems: Zotero.Utilities.debounce(async function () {
 		let itemsToShowABannerFor = [];
 
-		for (let item of this._queuedItemIDs) {
-			if (this._expressionsOfConcern.has(item)) {
-				itemsToShowABannerFor.push(item);
+		for (let itemID of this._queuedItemIDs) {
+			if (this._expressionsOfConcern.has(itemID)) {
+				itemsToShowABannerFor.push(itemID);
+			}
+			else {
+				this._queuedItemIDs.delete(itemID);
 			}
 		}
 		if (!itemsToShowABannerFor.length) {
@@ -366,8 +366,6 @@ Zotero.ExpressionsOfConcern = {
 	 * @private
 	 */
 	_showAlert: async function (itemsWithExpressionsOfConcern) {
-		this._queuedItemIDs.clear();
-
 		// Don't show banner for items in the trash
 		let items = await Zotero.Items.getAsync(itemsWithExpressionsOfConcern);
 		items = items.filter(item => !item.deleted);
@@ -382,7 +380,10 @@ Zotero.ExpressionsOfConcern = {
 		let zoteroPane = Zotero.getActiveZoteroPane();
 
 		if (zoteroPane) {
-			await zoteroPane.showExpressionsOfConcernBanner();
+			await zoteroPane.showExpressionsOfConcernBanner()
+				.then(() => {
+					this._queuedItemIDs.clear();
+				});
 		}
 	},
 
@@ -412,28 +413,32 @@ Zotero.ExpressionsOfConcern = {
 
 		if (action === "add") {
 			for (let itemID of ids) {
-				let item = await this.lookupUrlForEocs(itemID);
+				let item = await this.lookupUrlForEoCs(itemID);
+				this._queuedItemIDs.add(item.id);
 				if (!item) {
 					return;
 				}
 
-				await this.scrapeExpressionsOfConcern([item]).then(() => {
-					this._checkQueuedItems();
-				});
+				await this.scrapeExpressionsOfConcern([item])
+					.then(() => {
+						this._checkQueuedItems();
+					});
 			}
 		}
 
 		if (action === "modify") {
 			for (let itemID of ids) {
 				let item = Zotero.Items.get(itemID);
-				let expressionOfConcern = await this.lookupUrlForEocs(itemID);
+				this._queuedItemIDs.add(item.id);
+				let expressionOfConcern = await this.lookupUrlForEoCs(itemID);
 				if (!expressionOfConcern) {
 					return;
 				}
 
-				await this.scrapeExpressionsOfConcern([expressionOfConcern]).then(() => {
-					this._checkQueuedItems();
-				});
+				await this.scrapeExpressionsOfConcern([expressionOfConcern])
+					.then(() => {
+						this._checkQueuedItems();
+					});
 
 				let flag = this._expressionsOfConcern.get(itemID);
 				if (flag !== undefined) {
@@ -472,9 +477,9 @@ Zotero.ExpressionsOfConcern = {
 	/**
 	 * inconsistency in database zotero stores path urls as extensions even though it belongs to the root item
 	 * Query is not working
-	 * @returns {Promise<{itemID: string, value: string}>}
+	 * @returns {Promise<[{itemID: string, value: string}]>}
 	 */
-	lookupUrlsForEocs: async function () {
+	lookupUrlsForEoCs: async function () {
 		const queryString = `SELECT items.itemID, itemDataValues.value
 							FROM items
 							LEFT JOIN itemTypeFields 
@@ -493,15 +498,15 @@ Zotero.ExpressionsOfConcern = {
 							WHERE itemTypes.typeName <> 'attachment'
 								AND fields.fieldName = 'url'
 								AND itemAttachments.contentType <> 'application/pdf' `;
-		const filteredItems = await Zotero.DB.queryAsync(queryString);
-		return filteredItems;
+		const filteredEoCItems = await Zotero.DB.queryAsync(queryString);
+		return filteredEoCItems;
 	},
 
 	/**
 	 * Returns the most recent item which has a url from the DB
 	 * @returns {Promise<{itemID: string, value: string}>}
 	 */
-	lookupUrlForEocs: async function (itemID) {
+	lookupUrlForEoCs: async function (itemID) {
 		const queryString = `SELECT items.itemID, itemDataValues.value
 							FROM items
 							LEFT JOIN itemTypeFields 
@@ -521,17 +526,25 @@ Zotero.ExpressionsOfConcern = {
 								AND fields.fieldName = 'url'
 								AND itemAttachments.contentType <> 'application/pdf'
 								AND items.itemID = ?`;
-		return await Zotero.DB.rowQueryAsync(queryString, [itemID]);
+
+		const eocItem = await Zotero.DB.rowQueryAsync(queryString, [itemID]);
+		return eocItem;
 	},
 
 	/**
 	 *
 	 * @param items {[{itemID: string, value: string}]}
-	 * @returns {Promise<Object>}
+	 * @returns {Promise<void>}
 	 */
 	scrapeExpressionsOfConcern: async function (items) {
 		let promises = [];
 		for (let item of items) {
+			if(this._expressionsOfConcern.has(item.itemID)) {
+				continue;
+			} else {
+				this._queuedItemIDs.add(item.itemID);
+			}
+
 			promises.push(Zotero.HTTP.request("GET", item.value, {})
 				.then((response) => {
 					let htmlDoc = response.responseXML;
