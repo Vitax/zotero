@@ -134,7 +134,7 @@ label.zotero-text-link {
 }
 
 .zotero-clicky
-{	
+{
 	border-radius: 6px;
 	border: 1px solid transparent;
 }
@@ -301,6 +301,16 @@ label.zotero-text-link {
 #zotero-advanced-search-dialog #zotero-search-buttons
 {
 	margin: 3px 0;
+}
+
+#zotero-manage-api-keys
+{
+	padding: 3px;
+}
+
+#zotero-manage-api-keys #zotero-items-tree
+{
+	min-height: 250px;
 }
 
 #zotero-attach-uri-container

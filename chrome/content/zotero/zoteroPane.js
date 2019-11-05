@@ -1059,6 +1059,22 @@ var ZoteroPane = new function () {
 		window.openDialog('chrome://zotero/content/advancedSearch.xul', '', 'chrome,dialog=no,centerscreen', io);
 	};
 
+	this.openManageApiKeysWindow = function () {
+		var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator);
+		var enumerator = wm.getEnumerator('zotero:manageApiKeys');
+		while (enumerator.hasMoreElements()) {
+			var win = enumerator.getNext();
+		}
+
+		if (win) {
+			win.focus();
+			return;
+		}
+
+		window.openDialog('chrome://zotero/content/manageApiKeys.xul', null, 'chrome,dialog=no,centerscreen');
+	};
+
 
 	this.initTagSelector = function () {
 		var container = document.getElementById('zotero-tag-selector-container');
@@ -1620,6 +1636,10 @@ var ZoteroPane = new function () {
 			}
 		}
 	};
+
+	this.updateLookupInformationMenu = async function(lookupInformationPopup) {
+
+	}
 
 	/**
 	 * Update the <command> elements that control the shortcut keys and the enabled state of the
@@ -2965,6 +2985,10 @@ var ZoteroPane = new function () {
 				var popup = document.getElementById('zotero-add-attachment-popup');
 				this.updateAttachmentButtonMenu(popup);
 
+				// Update attachment submenu
+				var lookupInformationPopup = document.getElementById('zotero-lookupInformationPopup');
+				this.updateLookupInformationMenu(lookupInformationPopup)
+
 				// Block certain actions on files if no access
 				if (item.isFileAttachment() && !collectionTreeRow.filesEditable) {
 					[m.moveToTrash, m.createParent, m.renameAttachments]
@@ -3687,6 +3711,19 @@ var ZoteroPane = new function () {
 			Zotero.RecognizePDF.autoRecognizeItems(addedItems);
 		}
 	};
+
+	this.lookupInSpringerLink = async function(itemID) {
+		let item = await Zotero.Items.getAsync(itemID);
+		let itemDOI = item.getField('DOI');
+
+		let springerAPI = "";
+		let springetApiKey =
+		Zotero.debug(itemID);
+	}
+
+	this.lookupInElsevier = async function(itemID) {
+		Zotero.debug(itemID);
+	}
 
 	this.findPDFForSelectedItems = async function () {
 		if (!this.canEdit()) {

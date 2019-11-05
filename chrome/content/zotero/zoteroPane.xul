@@ -55,6 +55,7 @@
         <command id="cmd_zotero_importFromClipboard" oncommand="Zotero_File_Interface.importFromClipboard();"/>
         <command id="cmd_zotero_exportLibrary" oncommand="Zotero_File_Interface.exportFile();"/>
         <command id="cmd_zotero_advancedSearch" oncommand="ZoteroPane_Local.openAdvancedSearchWindow();"/>
+        <command id="cmd_zotero_manageApiKeys" oncommand="ZoteroPane_Local.openManageApiKeysWindow();"/>
         <command id="cmd_zotero_copyCitation"
                  oncommand="ZoteroPane_Local.copySelectedItemsToClipboard(true);"
                  disabled="true"/>
@@ -175,6 +176,8 @@
                     <toolbarseparator/>
                     <toolbarbutton id="zotero-tb-advanced-search" class="zotero-tb-button"
                                    tooltiptext="&zotero.toolbar.advancedSearch;" command="cmd_zotero_advancedSearch"/>
+                    <toolbarbutton id="zotero-tb-manage-api-keys" class="zotero-tb-button"
+                                   tooltiptext="&zotero.toolbar.manageApiKeys;" command="cmd_zotero_manageApiKeys"/>
                     <spacer flex="1"/>
                     <image id="zotero-tb-search-spinner" class="zotero-spinner-14" style="display: none"/>
                     <textbox id="zotero-tb-search" type="search" timeout="250"
@@ -307,7 +310,17 @@
                                       oncommand="var itemID = parseInt(this.parentNode.parentNode.parentNode.getAttribute('itemID')); ZoteroPane_Local.addAttachmentFromDialog(true, itemID);"/>
                         </menupopup>
                     </menu>
-                    <menuseparator/>
+                    <menu class="menu-iconic zotero-menuitem-lookup-information"
+                          label="&zotero.items.menu.lookupInformation;">
+                        <menupopup id="zotero-lookup-information-popup">
+                            <menuitem class="menuitem-iconic"
+                                      label="&zotero.items.menu.lookupInformation.springer;"
+                                      oncommand="var itemID = parseInt(this.parentNode.parentNode.parentNode.getAttribute('itemID')); ZoteroPane_Local.lookupInSpringerLink(itemID);"/>
+                            <menuitem class="menuitem-iconic"
+                                      label="&zotero.items.menu.lookupInformation.elsevier;"
+                                      oncommand="var itemID = parseInt(this.parentNode.parentNode.parentNode.getAttribute('itemID')); ZoteroPane_local.lookupInElsevier(itemID);"/>
+                        </menupopup>
+                    </menu>
                     <menuitem class="menuitem-iconic zotero-menuitem-find-pdf"
                               oncommand="ZoteroPane.findPDFForSelectedItems()"/>
                     <menuseparator/>

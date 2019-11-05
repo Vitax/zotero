@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/"?>
+<?xml-stylesheet href="chrome://zotero/skin/zotero.css" type="text/css"?>
+<?xml-stylesheet href="chrome://zotero/skin/overlay.css" type="text/css"?>
+<?xml-stylesheet href="chrome://zotero-platform/content/overlay.css"?>
+
+<!DOCTYPE window [
+        <!ENTITY % zoteroDTD SYSTEM "chrome://zotero/locale/zotero.dtd">
+        %zoteroDTD;
+        <!ENTITY % searchboxDTD SYSTEM "chrome://zotero/locale/searchbox.dtd">
+        %searchboxDTD;
+        ]>
+
+<window
+        id="zotero-manage-api-keys"
+        title="&zotero.toolbar.manageApiKeys;"
+        orient="vertical"
+        persist="screenX screenY width height"
+        onload="ZoteroManageApiKeys.onLoad()"
+        onunload="ZoteroManageApiKeys.onUnload()"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        windowtype="zotero:basicViewer">
+
+    <script src="include.js"/>
+    <script src="manageApiKeys.js"/>
+
+    <vbox id="zotero-manage-api-keys-box-container" flex="1">
+        <hbox align="center">
+            <span>Springer Link: </span>
+            <textbox id="springer-api-link-key" style="min-width: 250px; width: 100%" />
+            <button oncommand="ZoteroManageApiKeys.saveApiKey('springer-link')" label="&zotero.item.add;"/>
+            <button oncommand="ZoteroManageApiKeys.deleteApiKey('springer-link')" label="&zotero.general.delete;"/>
+        </hbox>
+
+        <hbox align="center">
+            <span>Elsevier: </span>
+            <textbox id="elsevier-api-key" style="min-width: 250px; width: 100%"/>
+            <button oncommand="ZoteroManageApiKeys.saveApiKey('elsevier')" label="&zotero.item.add;"/>
+            <button oncommand="ZoteroManageApiKeys.deleteApiKey('elsevier')" label="&zotero.general.delete;"/>
+        </hbox>
+
+        <hbox align="center">
+            <button label="&zotero.general.close;" oncommand="window.close()"/>
+        </hbox>
+    </vbox>
+
+    <keyset>
+        <key id="key_close" key="W" modifiers="accel" oncommand="window.close()"/>
+    </keyset>
+
+</window>
+
+

@@ -96,6 +96,10 @@
 <!ENTITY zotero.items.menu.attach.file					"Attach Stored Copy of File…">
 <!ENTITY zotero.items.menu.attach.fileLink				"Attach Link to File…">
 
+<!ENTITY zotero.items.menu.lookupInformation "Lookup for more Information">
+<!ENTITY zotero.items.menu.lookupInformation.springer "In Springer Link">
+<!ENTITY zotero.items.menu.lookupInformation.elsevier "In Elsevier">
+
 <!ENTITY zotero.items.menu.restoreToLibrary				"Restore to Library">
 <!ENTITY zotero.items.menu.duplicateItem					"Duplicate Item">
 <!ENTITY zotero.items.menu.mergeItems					"Merge Items…">
@@ -127,6 +131,7 @@
 <!ENTITY zotero.toolbar.supportAndDocumentation		"Support and Documentation">
 <!ENTITY zotero.toolbar.about.label					"About Zotero">
 <!ENTITY zotero.toolbar.advancedSearch				"Advanced Search">
+<!ENTITY zotero.toolbar.manageApiKeys "Manage Api Keys">
 <!ENTITY zotero.toolbar.openURL.label					"Locate">
 <!ENTITY zotero.toolbar.openURL.tooltip				"Find through your local library">
 
