@@ -31,21 +31,34 @@ let ZoteroManageApiKeys = new function () {
 	this.saveApiKey = saveApiKey;
 	this.deleteApiKey = deleteApiKey;
 
+	this.springerKey = "";
+	this.elsevierKey = "";
+
+	this.springerInputChanged = springerInputChanged;
+	this.elsevierInputChanged = elsevierInputChanged;
+
 	async function onLoad() {
 		// Set font size from pref
 		var apiKeysContainer = document.getElementById('zotero-manage-api-keys-box-container');
 		Zotero.setFontSize(apiKeysContainer);
 
-		let apiKeys = await _loadZoteroApiKeysFile();
-
-		let springerKey = document.getElementById('springer-api-link-key');
-		if(apiKeys.springerKey) {
-			springerKey.setAttribute('value', apiKeys.springerKey);
+		let apiKeys = await _loadApiKeysFile();
+		if (apiKeys) {
+			Zotero.debug('api keys: ' + apiKeys);
+			apiKeys = JSON.parse(apiKeys);
+		}
+		else {
+			return;
 		}
 
-		let elsevierKey = document.getElementById('elsevier-api-link-key');
-		if(apiKeys.elsevierKey) {
-			elsevierKey.setAttribute('value', apiKeys.elsevierKey);
+		let springerKey = document.getElementById('springer-api-key');
+		if (apiKeys.springer) {
+			springerKey.setAttribute('value', apiKeys.springer);
+		}
+
+		let elsevierKey = document.getElementById('elsevier-api-key');
+		if (apiKeys.elsevier) {
+			elsevierKey.setAttribute('value', apiKeys.elsevier);
 		}
 	}
 
@@ -55,40 +68,127 @@ let ZoteroManageApiKeys = new function () {
 
 
 	/**
+	 *
+	 * @param event
+	 * @returns {Promise<void>}
+	 */
+	async function springerInputChanged(event) {
+		let springerKey = document.getElementById('springer-api-key');
+
+		this.springerKey = springerKey.value;
+	}
+
+	/**
+	 *
+	 * @param event
+	 */
+	function elsevierInputChanged(event) {
+		let elsevierKey = document.getElementById('elsevier-api-key');
+
+		this.elsevierKey = elsevierKey.value;
+	}
+
+	/**
 	 * Store api key to api keys file
 	 * @param type {string}
 	 */
-	function saveApiKey(provider) {
-		Zotero.debug('saving api key for: ' + provider);
+	async function saveApiKey(provider) {
+		let content = await _loadApiKeysFile();
+
+		Zotero.debug('content: ' + content);
+		if (content) {
+			content = JSON.parse(content);
+		}
+
+		if (provider == "springer" && content) {
+			content.springer = this.springerKey;
+		}
+		else if (provider == "springer" && !content) {
+			let apiKeys = {
+				springer: this.springerKey
+			};
+
+			await _writeToApiKeysFile(apiKeys);
+			return;
+		}
+
+		if (provider == "elsevier" && content) {
+			content.elsevier = this.elsevierKey;
+		}
+		else if (provider == "elsevier" && !content) {
+			let apiKeys = {
+				elsevier: this.elsevierKey
+			};
+
+			await _writeToApiKeysFile(apiKeys);
+			return;
+		}
+
+		await _writeToApiKeysFile(content);
 	}
 
 	/**
 	 * Delete api key from api keys file
 	 * @param provider
 	 */
-	function deleteApiKey(provider) {
-		Zotero.debug('deleting api key for: ' + provider);
+	async function deleteApiKey(provider) {
+		let content = await _loadApiKeysFile();
+
+		if (content) {
+			content = JSON.parse(content);
+		}
+		else {
+			return;
+		}
+
+		if (provider === "springer" && content) {
+			content.springer = "";
+			let springerKey = document.getElementById('springer-api-key');
+
+			if (content.springer) {
+				springerKey.setAttribute('value', content.springer);
+			}
+		}
+
+		if (provider === "elsevier" && content) {
+			content.elsevier = "";
+			let elsevierKey = document.getElementById('elsevier-api-key');
+
+			if (content.elsevier) {
+				elsevierKey.setAttribute('value', content.elsevier);
+			}
+		}
+
+		await _writeToApiKeysFile(content);
 	}
 
 	/**
 	 *
 	 * @private
 	 */
-	async function _loadZoteroApiKeysFile() {
+	async function _loadApiKeysFile() {
 		let profileDir = OS.Constants.Path.profileDir;
-		let fileContent;
+		let apiKeysPath = OS.Path.join(profileDir, "apiKeys.json");
+		Zotero.debug(apiKeysPath);
 
-		// Read in prefs
-		let apiKeysFile = OS.Path.join(profileDir, "apiKeys.json");
-
-		if (OS.File.exists(apiKeysFile)) {
-			fileContent = await OS.File.read(apiKeysFile);
-			Zotero.debug('api keys file exists: ' + fileContent);
-		} else {
-			fileContent = OS.File.open(apiKeysFile);
-			Zotero.debug('api keys file does not exist: ' + fileContent);
+		if (!await OS.File.exists(apiKeysPath)) {
+			return false;
 		}
 
-		return fileContent;
+		let content = await Zotero.File.getContentsAsync(apiKeysPath);
+		return content;
+	}
+
+	async function _writeToApiKeysFile(data) {
+		let profileDir = OS.Constants.Path.profileDir;
+		let apiKeysFile = OS.Path.join(profileDir, "apiKeys.json");
+		Zotero.debug(JSON.stringify(data));
+
+		try {
+			await Zotero.File.putContentsAsync(apiKeysFile, JSON.stringify(data));
+		}
+		catch (e) {
+			Zotero.debug("Error writing to file : " + e);
+		}
 	}
 };

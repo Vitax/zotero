@@ -27,16 +27,20 @@
     <vbox id="zotero-manage-api-keys-box-container" flex="1">
         <hbox align="center">
             <span>Springer Link: </span>
-            <textbox id="springer-api-link-key" style="min-width: 250px; width: 100%" />
-            <button oncommand="ZoteroManageApiKeys.saveApiKey('springer-link')" label="&zotero.item.add;"/>
-            <button oncommand="ZoteroManageApiKeys.deleteApiKey('springer-link')" label="&zotero.general.delete;"/>
+            <textbox id="springer-api-key" style="min-width: 250px; width: 100%"
+                     oninput="ZoteroManageApiKeys.springerInputChanged(event);"
+                     onchange="ZoteroManageApiKeys.springerInputChanged(event);"/>
+            <button oncommand="ZoteroManageApiKeys.saveApiKey('springer');" label="&zotero.item.add;"/>
+            <button oncommand="ZoteroManageApiKeys.deleteApiKey('springer');" label="&zotero.general.delete;"/>
         </hbox>
 
         <hbox align="center">
             <span>Elsevier: </span>
-            <textbox id="elsevier-api-key" style="min-width: 250px; width: 100%"/>
-            <button oncommand="ZoteroManageApiKeys.saveApiKey('elsevier')" label="&zotero.item.add;"/>
-            <button oncommand="ZoteroManageApiKeys.deleteApiKey('elsevier')" label="&zotero.general.delete;"/>
+            <textbox id="elsevier-api-key" style="min-width: 250px; width: 100%"
+                     oninput="ZoteroManageApiKeys.elsevierInputChanged(event);"
+                     onchange="ZoteroManageApiKeys.elsevierInputChanged(event);"/>
+            <button oncommand="ZoteroManageApiKeys.saveApiKey('elsevier');" label="&zotero.item.add;"/>
+            <button oncommand="ZoteroManageApiKeys.deleteApiKey('elsevier');" label="&zotero.general.delete;"/>
         </hbox>
 
         <hbox align="center">
