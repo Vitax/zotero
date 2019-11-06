@@ -558,7 +558,6 @@ var ZoteroPane = new function () {
 			if ((Zotero.isWin && event.keyCode == 17 && !event.altKey)
 				|| (!Zotero.isWin && event.keyCode == 18 && !event.ctrlKey)
 				&& !event.shiftKey && !event.metaKey) {
-
 				this.highlightTimer = Components.classes["@mozilla.org/timer;1"]
 					.createInstance(Components.interfaces.nsITimer);
 				// {} implements nsITimerCallback
@@ -588,7 +587,6 @@ var ZoteroPane = new function () {
 					this.highlightTimer = null;
 				}
 				ZoteroPane_Local.collectionsView.setHighlightedRows();
-				return;
 			}
 		}
 	}
@@ -1637,9 +1635,9 @@ var ZoteroPane = new function () {
 		}
 	};
 
-	this.updateLookupInformationMenu = async function(lookupInformationPopup) {
+	this.updateLookupInformationMenu = async function (lookupInformationPopup) {
 
-	}
+	};
 
 	/**
 	 * Update the <command> elements that control the shortcut keys and the enabled state of the
@@ -2987,7 +2985,7 @@ var ZoteroPane = new function () {
 
 				// Update attachment submenu
 				var lookupInformationPopup = document.getElementById('zotero-lookupInformationPopup');
-				this.updateLookupInformationMenu(lookupInformationPopup)
+				this.updateLookupInformationMenu(lookupInformationPopup);
 
 				// Block certain actions on files if no access
 				if (item.isFileAttachment() && !collectionTreeRow.filesEditable) {
@@ -3712,18 +3710,25 @@ var ZoteroPane = new function () {
 		}
 	};
 
-	this.lookupInSpringerLink = async function(itemID) {
+	this.lookupInSpringerLink = async function (itemID) {
 		let item = await Zotero.Items.getAsync(itemID);
 		let itemDOI = item.getField('DOI');
 
-		let springerAPI = "";
-		let springetApiKey =
-		Zotero.debug(itemID);
-	}
+		let springerApiCall = "";
+		let springerApiKey = await ZoteroManageApiKeys.getSpringerKey();
 
-	this.lookupInElsevier = async function(itemID) {
-		Zotero.debug(itemID);
-	}
+		Zotero.debug(springerApiKey);
+	};
+
+	this.lookupInElsevier = async function (itemID) {
+		let item = await Zotero.Items.getAsync(itemID);
+		let itemDOI = item.getField('DOI');
+
+		let elsevierApiCall = "";
+		let elsevierApiKey = await ZoteroManageApiKeys.getElsevierKey();
+
+		Zotero.debug(elsevierApiKey);
+	};
 
 	this.findPDFForSelectedItems = async function () {
 		if (!this.canEdit()) {

@@ -41,6 +41,7 @@
 
     <script src="include.js"/>
     <script src="zoteroPane.js" type="application/javascript"/>
+    <script src="manageApiKeys.js" type="application/javascript"/>
     <script src="fileInterface.js"/>
     <script src="reportInterface.js"/>
     <script src="timelineInterface.js"/>
@@ -318,7 +319,7 @@
                                       oncommand="var itemID = parseInt(this.parentNode.parentNode.parentNode.getAttribute('itemID')); ZoteroPane_Local.lookupInSpringerLink(itemID);"/>
                             <menuitem class="menuitem-iconic"
                                       label="&zotero.items.menu.lookupInformation.elsevier;"
-                                      oncommand="var itemID = parseInt(this.parentNode.parentNode.parentNode.getAttribute('itemID')); ZoteroPane_local.lookupInElsevier(itemID);"/>
+                                      oncommand="var itemID = parseInt(this.parentNode.parentNode.parentNode.getAttribute('itemID')); ZoteroPane_Local.lookupInElsevier(itemID);"/>
                         </menupopup>
                     </menu>
                     <menuitem class="menuitem-iconic zotero-menuitem-find-pdf"

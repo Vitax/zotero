@@ -24,7 +24,7 @@
     <script src="include.js"/>
     <script src="manageApiKeys.js"/>
 
-    <vbox id="zotero-manage-api-keys-box-container" flex="1">
+    <vbox id="zotero-manage-api-keys-container" flex="1">
         <hbox align="center">
             <span>Springer Link: </span>
             <textbox id="springer-api-key" style="min-width: 250px; width: 100%"

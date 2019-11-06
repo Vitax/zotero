@@ -31,6 +31,9 @@ let ZoteroManageApiKeys = new function () {
 	this.saveApiKey = saveApiKey;
 	this.deleteApiKey = deleteApiKey;
 
+	this.getSpringerKey = getSpringerKey;
+	this.getElsevierKey = getElsevierKey;
+
 	this.springerKey = "";
 	this.elsevierKey = "";
 
@@ -39,12 +42,11 @@ let ZoteroManageApiKeys = new function () {
 
 	async function onLoad() {
 		// Set font size from pref
-		var apiKeysContainer = document.getElementById('zotero-manage-api-keys-box-container');
+		var apiKeysContainer = document.getElementById('zotero-manage-api-keys-container');
 		Zotero.setFontSize(apiKeysContainer);
 
 		let apiKeys = await _loadApiKeysFile();
 		if (apiKeys) {
-			Zotero.debug('api keys: ' + apiKeys);
 			apiKeys = JSON.parse(apiKeys);
 		}
 		else {
@@ -53,12 +55,14 @@ let ZoteroManageApiKeys = new function () {
 
 		let springerKey = document.getElementById('springer-api-key');
 		if (apiKeys.springer) {
-			springerKey.setAttribute('value', apiKeys.springer);
+			springerKey.value = "";
+			this.springerKey = "";
 		}
 
 		let elsevierKey = document.getElementById('elsevier-api-key');
 		if (apiKeys.elsevier) {
-			elsevierKey.setAttribute('value', apiKeys.elsevier);
+			elsevierKey.value = "";
+			this.elsevierKey = "";
 		}
 	}
 
@@ -95,7 +99,6 @@ let ZoteroManageApiKeys = new function () {
 	async function saveApiKey(provider) {
 		let content = await _loadApiKeysFile();
 
-		Zotero.debug('content: ' + content);
 		if (content) {
 			content = JSON.parse(content);
 		}
@@ -142,21 +145,17 @@ let ZoteroManageApiKeys = new function () {
 		}
 
 		if (provider === "springer" && content) {
-			content.springer = "";
 			let springerKey = document.getElementById('springer-api-key');
 
-			if (content.springer) {
-				springerKey.setAttribute('value', content.springer);
-			}
+			content.springer = "";
+			springerKey.value = content.springer;
 		}
 
 		if (provider === "elsevier" && content) {
-			content.elsevier = "";
 			let elsevierKey = document.getElementById('elsevier-api-key');
 
-			if (content.elsevier) {
-				elsevierKey.setAttribute('value', content.elsevier);
-			}
+			content.elsevier = "";
+			elsevierKey.value = content.elsevier;
 		}
 
 		await _writeToApiKeysFile(content);
@@ -169,7 +168,6 @@ let ZoteroManageApiKeys = new function () {
 	async function _loadApiKeysFile() {
 		let profileDir = OS.Constants.Path.profileDir;
 		let apiKeysPath = OS.Path.join(profileDir, "apiKeys.json");
-		Zotero.debug(apiKeysPath);
 
 		if (!await OS.File.exists(apiKeysPath)) {
 			return false;
@@ -182,13 +180,32 @@ let ZoteroManageApiKeys = new function () {
 	async function _writeToApiKeysFile(data) {
 		let profileDir = OS.Constants.Path.profileDir;
 		let apiKeysFile = OS.Path.join(profileDir, "apiKeys.json");
-		Zotero.debug(JSON.stringify(data));
 
 		try {
 			await Zotero.File.putContentsAsync(apiKeysFile, JSON.stringify(data));
 		}
-		catch (e) {
-			Zotero.debug("Error writing to file : " + e);
+		catch (error) {
+			Zotero.debug("Error writing to file : " + error);
 		}
+	}
+
+	async function getSpringerKey() {
+		let content = await _loadApiKeysFile();
+
+		if(content) {
+			content = JSON.parse(content);
+		}
+
+		return content.springer;
+	}
+
+	async function getElsevierKey() {
+		let content = await _loadApiKeysFile();
+
+		if(content) {
+			content = JSON.parse(content);
+		}
+
+		return content.springer;
 	}
 };
