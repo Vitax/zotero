@@ -55,14 +55,12 @@ let ZoteroManageApiKeys = new function () {
 
 		let springerKey = document.getElementById('springer-api-key');
 		if (apiKeys.springer) {
-			springerKey.value = "";
-			this.springerKey = "";
+			springerKey.value = apiKeys.springer;
 		}
 
 		let elsevierKey = document.getElementById('elsevier-api-key');
 		if (apiKeys.elsevier) {
-			elsevierKey.value = "";
-			this.elsevierKey = "";
+			elsevierKey.value = apiKeys.elsevier;
 		}
 	}
 
@@ -192,7 +190,7 @@ let ZoteroManageApiKeys = new function () {
 	async function getSpringerKey() {
 		let content = await _loadApiKeysFile();
 
-		if(content) {
+		if (content) {
 			content = JSON.parse(content);
 		}
 
@@ -202,10 +200,10 @@ let ZoteroManageApiKeys = new function () {
 	async function getElsevierKey() {
 		let content = await _loadApiKeysFile();
 
-		if(content) {
+		if (content) {
 			content = JSON.parse(content);
 		}
 
-		return content.springer;
+		return content.elsevier;
 	}
 };

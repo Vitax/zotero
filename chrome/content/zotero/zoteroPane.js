@@ -3714,20 +3714,30 @@ var ZoteroPane = new function () {
 		let item = await Zotero.Items.getAsync(itemID);
 		let itemDOI = item.getField('DOI');
 
-		let springerApiCall = "";
+		let springerApiCall = `http://api.springernature.com/metadata/pam/doi/${itemDOI}?api_key=`;
 		let springerApiKey = await ZoteroManageApiKeys.getSpringerKey();
 
-		Zotero.debug(springerApiKey);
+		let apiCall = springerApiCall + springerApiKey;
+
+		Zotero.HTTP.request("GET", apiCall)
+			.then((response) => {
+				Zotero.debug(response.responseText);
+			});
 	};
 
 	this.lookupInElsevier = async function (itemID) {
 		let item = await Zotero.Items.getAsync(itemID);
 		let itemDOI = item.getField('DOI');
 
-		let elsevierApiCall = "";
+		let elsevierApiCall = `https://api.elsevier.com/content/article/doi/${itemDOI}?apiKey=`;
 		let elsevierApiKey = await ZoteroManageApiKeys.getElsevierKey();
 
-		Zotero.debug(elsevierApiKey);
+		let apiCall = elsevierApiCall + elsevierApiKey;
+
+		Zotero.HTTP.request("GET", apiCall)
+			.then((response) => {
+				Zotero.debug(response.responseText);
+			});
 	};
 
 	this.findPDFForSelectedItems = async function () {
