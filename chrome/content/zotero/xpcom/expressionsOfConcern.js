@@ -54,7 +54,7 @@ Zotero.ExpressionsOfConcern = {
 		}
 		catch (error) { }
 
-		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionOfConcern', 20);
+		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionsOfConcern', 20);
 
 		let expressionsOfConcern = await this._getEntries();
 		for (let row of expressionsOfConcern) {
@@ -82,11 +82,11 @@ Zotero.ExpressionsOfConcern = {
 	},
 
 	_updateFromInternet: async function() {
-		const items = await this.lookupUrlsForEoCs();
+		const items = await this.lookupUrlsForItems();
 		if (items.length) {
 			this.scrapeExpressionsOfConcern(items)
 				.then(() => {
-					this._checkQueuedItems();
+					this._checkQueuedItemsInternal();
 				});
 		}
 	},
@@ -243,7 +243,7 @@ Zotero.ExpressionsOfConcern = {
 		await Zotero.DB.queryAsync("delete from expressionsOfConcern");
 		this._expressionsOfConcern.clear();
 
-		await Zotero.Notifier.trigger("trash", "expressionOfConcern", itemIDs);
+		await Zotero.Notifier.trigger("trash", "item", itemIDs);
 	},
 
 	_updateEntryFlag: async function (itemID, newFlag) {
@@ -253,11 +253,11 @@ Zotero.ExpressionsOfConcern = {
 		await Zotero.Notifier.trigger('modify', 'item', [itemID]);
 	},
 
-	checkQueuedItemsInternal: async function () {
-		await this._checkQueuedItems;
+	checkQueuedItems: async function () {
+		await this._checkQueuedItemsInternal;
 	},
 
-	_checkQueuedItems: Zotero.Utilities.debounce(async function () {
+	_checkQueuedItemsInternal: Zotero.Utilities.debounce(async function () {
 		let itemsToShowABannerFor = [];
 
 		for (let itemID of this._queuedItemIDs) {
@@ -413,7 +413,7 @@ Zotero.ExpressionsOfConcern = {
 
 		if (action === "add") {
 			for (let itemID of ids) {
-				let item = await this.lookupUrlForEoCs(itemID);
+				let item = await this.lookupUrlForItem(itemID);
 				this._queuedItemIDs.add(item.id);
 				if (!item) {
 					return;
@@ -421,7 +421,7 @@ Zotero.ExpressionsOfConcern = {
 
 				await this.scrapeExpressionsOfConcern([item])
 					.then(() => {
-						this._checkQueuedItems();
+						this._checkQueuedItemsInternal();
 					});
 			}
 		}
@@ -430,14 +430,14 @@ Zotero.ExpressionsOfConcern = {
 			for (let itemID of ids) {
 				let item = Zotero.Items.get(itemID);
 				this._queuedItemIDs.add(item.id);
-				let expressionOfConcern = await this.lookupUrlForEoCs(itemID);
+				let expressionOfConcern = await this.lookupUrlForItem(itemID);
 				if (!expressionOfConcern) {
 					return;
 				}
 
 				await this.scrapeExpressionsOfConcern([expressionOfConcern])
 					.then(() => {
-						this._checkQueuedItems();
+						this._checkQueuedItemsInternal();
 					});
 
 				let flag = this._expressionsOfConcern.get(itemID);
@@ -479,7 +479,7 @@ Zotero.ExpressionsOfConcern = {
 	 * Query is not working
 	 * @returns {Promise<[{itemID: string, value: string}]>}
 	 */
-	lookupUrlsForEoCs: async function () {
+	lookupUrlsForItems: async function () {
 		const queryString = `SELECT items.itemID, itemDataValues.value
 							FROM items
 							LEFT JOIN itemTypeFields 
@@ -506,7 +506,7 @@ Zotero.ExpressionsOfConcern = {
 	 * Returns the most recent item which has a url from the DB
 	 * @returns {Promise<{itemID: string, value: string}>}
 	 */
-	lookupUrlForEoCs: async function (itemID) {
+	lookupUrlForItem: async function (itemID) {
 		const queryString = `SELECT items.itemID, itemDataValues.value
 							FROM items
 							LEFT JOIN itemTypeFields 
