@@ -70,24 +70,13 @@ Zotero.ExpressionsOfConcern = {
 
 		this._initialized = true;
 
-		/**
-		 * Idea after everything basic functionality works:
-		 *        - Setup a Database with a local service which scrapes PubMed and other pages for publications with expressions of concern
-		 *        - Store scraping processes into tables
-		 *        - Have some kind of hash which determines the version of the database
-		 *        - Request the Hash form the database and compare the local cache file hash with it
-		 *        - Get new Database if they do not match !
-		 */
 		this._updateFromInternet();
 	},
 
-	_updateFromInternet: async function() {
+	_updateFromInternet: async function () {
 		const items = await this.lookupUrlsForItems();
 		if (items.length) {
-			this.scrapeExpressionsOfConcern(items)
-				.then(() => {
-					this._checkQueuedItemsInternal();
-				});
+			this.scrapeExpressionsOfConcern(items);
 		}
 	},
 
@@ -253,11 +242,11 @@ Zotero.ExpressionsOfConcern = {
 		await Zotero.Notifier.trigger('modify', 'item', [itemID]);
 	},
 
-	checkQueuedItems: async function () {
-		await this._checkQueuedItemsInternal;
-	},
+	checkQueuedItems: Zotero.Utilities.debounce(async function () {
+		return this._checkQueuedItemsInternal();
+	}, 1000),
 
-	_checkQueuedItemsInternal: Zotero.Utilities.debounce(async function () {
+	_checkQueuedItemsInternal: async function () {
 		let itemsToShowABannerFor = [];
 
 		for (let itemID of this._queuedItemIDs) {
@@ -273,7 +262,7 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		this._showAlert(itemsToShowABannerFor);
-	}, 1000),
+	},
 
 	/**
 	 *
@@ -375,7 +364,6 @@ Zotero.ExpressionsOfConcern = {
 		}
 
 		Zotero.Prefs.set('expressionsOfConcern.recentItems', JSON.stringify(items.map(item => item.id)));
-		this._queuedItemIDs.clear();
 
 		let zoteroPane = Zotero.getActiveZoteroPane();
 
@@ -414,31 +402,23 @@ Zotero.ExpressionsOfConcern = {
 		if (action === "add") {
 			for (let itemID of ids) {
 				let item = await this.lookupUrlForItem(itemID);
-				this._queuedItemIDs.add(item.id);
 				if (!item) {
 					return;
 				}
 
-				await this.scrapeExpressionsOfConcern([item])
-					.then(() => {
-						this._checkQueuedItemsInternal();
-					});
+				await this.scrapeExpressionsOfConcern([item]);
 			}
 		}
 
 		if (action === "modify") {
 			for (let itemID of ids) {
 				let item = Zotero.Items.get(itemID);
-				this._queuedItemIDs.add(item.id);
 				let expressionOfConcern = await this.lookupUrlForItem(itemID);
 				if (!expressionOfConcern) {
 					return;
 				}
 
-				await this.scrapeExpressionsOfConcern([expressionOfConcern])
-					.then(() => {
-						this._checkQueuedItemsInternal();
-					});
+				await this.scrapeExpressionsOfConcern([expressionOfConcern]);
 
 				let flag = this._expressionsOfConcern.get(itemID);
 				if (flag !== undefined) {
@@ -539,9 +519,10 @@ Zotero.ExpressionsOfConcern = {
 	scrapeExpressionsOfConcern: async function (items) {
 		let promises = [];
 		for (let item of items) {
-			if(this._expressionsOfConcern.has(item.itemID)) {
+			if (this._expressionsOfConcern.has(item.itemID)) {
 				continue;
-			} else {
+			}
+			else {
 				this._queuedItemIDs.add(item.itemID);
 			}
 
@@ -599,7 +580,10 @@ Zotero.ExpressionsOfConcern = {
 			);
 		}
 
-		await Zotero.Promise.all(promises);
+		await Zotero.Promise.all(promises)
+			.then(() => {
+				this.checkQueuedItems();
+			});
 	},
 
 	/**

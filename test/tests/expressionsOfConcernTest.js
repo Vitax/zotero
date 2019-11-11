@@ -102,11 +102,6 @@ describe("ExpressionsOfConcern", function () {
 			let expressionOfConcernBox = window.document.getElementById('expression-of-concern-box');
 			assert.isTrue(expressionOfConcernBox.hidden);
 
-			// Lookup for new items to check expression of concern
-			let eoc = await Zotero.ExpressionsOfConcern.lookupUrlForItem(item.id);
-			console.log('eoc value: ', eoc.value)
-			await Zotero.ExpressionsOfConcern.scrapeExpressionsOfConcern([eoc]);
-
 			let exists = await Zotero.DB.queryAsync(
 				`SELECT * FROM expressionsOfConcern
 				 WHERE expressionsOfConcern.itemID=${item.id}`
