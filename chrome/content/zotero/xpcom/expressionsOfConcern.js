@@ -165,12 +165,13 @@ Zotero.ExpressionsOfConcern = {
 
 	/**
 	 *
-	 * @param item {string} primary key of the item for which its expression of concern should be retrieved
+	 * @param item {Zotero.Item} primary key of the item for which its expression of concern should be retrieved
 	 * @returns {Promise<Object>}
 	 */
-	getEntry: async function (itemID) {
+	getEntry: async function (item) {
 		const expressionOfConcernCopy = {};
 		const queryString = "SELECT itemID, data, flag FROM expressionsOfConcern WHERE itemID=?";
+		const itemID = item.id || item.itemID;
 		const expressionOfConcern = await Zotero.DB.rowQueryAsync(queryString, itemID);
 
 		if (!expressionOfConcern) {
@@ -445,7 +446,8 @@ Zotero.ExpressionsOfConcern = {
 	 * @returns {boolean}
 	 */
 	hasExpressionOfConcern: function (item) {
-		let expressionOfConcern = this._expressionsOfConcern.has(item.id);
+		let itemID = item.id || item.itemID;
+		let expressionOfConcern = this._expressionsOfConcern.has(itemID);
 
 		if (!expressionOfConcern) {
 			return false;

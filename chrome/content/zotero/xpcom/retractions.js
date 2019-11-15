@@ -118,7 +118,8 @@ Zotero.Retractions = {
 	 * @return {Boolean}
 	 */
 	isRetracted: function (item) {
-		var flag = this._retractedItems.get(item.id);
+		let itemID = item.id || item.itemID;
+		var flag = this._retractedItems.get(itemID);
 		return flag !== undefined && flag !== this.FLAG_HIDDEN;
 	},
 
@@ -335,8 +336,9 @@ Zotero.Retractions = {
 	 * @return {Object|false}
 	 */
 	getData: async function (item) {
+		const itemID = item.id || item.itemID;
 		var data = await Zotero.DB.valueQueryAsync(
-			"SELECT data FROM retractedItems WHERE itemID=?", item.id
+			"SELECT data FROM retractedItems WHERE itemID=?", itemID
 		);
 		if (!data) {
 			return false;

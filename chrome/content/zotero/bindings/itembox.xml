@@ -2422,7 +2422,7 @@
                                     return;
                                 }
 
-                                let expressionOfConcern = await Zotero.ExpressionsOfConcern.getEntry(item.id);
+                                let expressionOfConcern = await Zotero.ExpressionsOfConcern.getEntry(item);
                                 let expressionOfConcernData = expressionOfConcern.data;
 
                                 // make expression of concern div visible
