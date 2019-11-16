@@ -1142,7 +1142,7 @@ Zotero.Utilities = {
 	 * @param item
 	 * @returns {Promise<*|Object|false>}
 	 */
-	getRetractionInformation: async function(item) {
+	getRetractionInformation: function (item) {
 		return Zotero.Retractions.getData(item);
 	},
 
@@ -1162,9 +1162,9 @@ Zotero.Utilities = {
 	/**
 	 *
 	 * @param item
-	 * @returns {Promise<*|Object>}
+	 * @returns {Promise<*|Object|false>}
 	 */
-	getExpressionOfConcernInformation: async function(item) {
+	getExpressionOfConcernInformation: function (item) {
 		return Zotero.ExpressionsOfConcern.getEntry(item);
 	},
 
