@@ -45,14 +45,17 @@ Zotero.ExpressionsOfConcern = {
 			return;
 		}
 
-		const queryString = "CREATE TABLE IF NOT EXISTS expressionsOfConcern (itemID INTEGER PRIMARY KEY, data text, FOREIGN KEY (itemID) REFERENCES items(itemID)on delete cascade )";
+		const queryString = `CREATE TABLE IF NOT EXISTS expressionsOfConcern 
+								(itemID INTEGER PRIMARY KEY, data text,
+							FOREIGN KEY (itemID) REFERENCES items(itemID)
+							ON DELETE cascade)`;
 		await Zotero.DB.queryAsync(queryString);
 
 		try {
 			const queryString = "ALTER TABLE expressionsOfConcern ADD COLUMN flag INT DEFAULT 0";
 			await Zotero.DB.queryAsync(queryString);
+		} catch (error) {
 		}
-		catch (error) { }
 
 		Zotero.Notifier.registerObserver(this, ['item', 'group'], 'expressionsOfConcern', 20);
 
@@ -304,7 +307,7 @@ Zotero.ExpressionsOfConcern = {
 		if (
 			Zotero.Libraries.exists(libraryID)
 			&& (previous !== current
-				|| (current && !Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(libraryID, "expressionOfConcern")))
+			|| (current && !Zotero.Utilities.Internal.getVirtualCollectionStateForLibrary(libraryID, "expressionOfConcern")))
 		) {
 			let promises = [];
 			for (let zoteroPane of Zotero.getZoteroPanes()) {
@@ -402,12 +405,23 @@ Zotero.ExpressionsOfConcern = {
 
 		if (action === "add") {
 			for (let itemID of ids) {
-				let item = await this.lookupUrlForItem(itemID);
-				if (!item) {
+				let item = Zotero.Items.get(itemID);
+				let expressionOfConcern = await this.lookupUrlForItem(itemID);
+				if (!expressionOfConcern) {
 					return;
 				}
 
-				await this.scrapeExpressionsOfConcern([item]);
+				await this.scrapeExpressionsOfConcern([expressionOfConcern]);
+
+				let flag = this._expressionsOfConcern.get(itemID);
+				if (flag !== undefined) {
+					if (flag === this.FLAG.HIDDEN || item.deleted) {
+						await this._removeEntryFromExpressionsOfConcernLibrary(item.id, item.libraryID);
+					}
+					else {
+						await this._addEntryToExpressionsOfConcernLibrary(item.id, item.libraryID);
+					}
+				}
 			}
 		}
 
@@ -479,7 +493,7 @@ Zotero.ExpressionsOfConcern = {
 								ON itemDataValues.valueID = itemData.valueID
 							WHERE itemTypes.typeName <> 'attachment'
 								AND fields.fieldName = 'url'
-								AND itemAttachments.contentType <> 'application/pdf' `;
+								AND itemAttachments.contentType <> 'application/pdf'`;
 		const filteredEoCItems = await Zotero.DB.queryAsync(queryString);
 		return filteredEoCItems;
 	},

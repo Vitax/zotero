@@ -20,7 +20,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
     
-    ***** END LICENSE BLOCK *****
+    ***** npm i rollup@1.18.0END LICENSE BLOCK *****
 */
 
 import React, { useState, useEffect } from 'react';
