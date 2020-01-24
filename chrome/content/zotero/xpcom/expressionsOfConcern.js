@@ -537,7 +537,7 @@ Zotero.ExpressionsOfConcern = {
 						htmlDoc = parser.parseFromString(response.responseText, "text/html");
 					}
 
-					let mainContent = htmlDoc.getElementById('maincontent');
+					let mainContent = Zotero.Utilities.xpath(htmlDoc, '//div[@id="maincontent"]');
 					if (!mainContent) {
 						return;
 					}
