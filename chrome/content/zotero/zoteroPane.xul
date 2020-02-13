@@ -59,7 +59,7 @@
                  oncommand="ZoteroPane_Local.copySelectedItemsToClipboard(true);"
                  disabled="true"/>
         <command id="cmd_zotero_copyBibliography"
-                 oncommand="ZoteroPane_Local.copySelectedItemsToClipboard();"
+                 oncommand="ZoteroPane_Local.copySelectedItemsToClipboard();resource "
                  disabled="true"/>
         <command id="cmd_zotero_createTimeline" oncommand="Zotero_Timeline_Interface.loadTimeline();"/>
         <command id="cmd_zotero_rtfScan"
